@@ -1,0 +1,14 @@
+Run the following command to generate Python gRPC code:
+
+    python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. mom.proto
+
+
+Run MOM server
+    python mom_server.py
+
+Run REST API server
+    python rest_api.py
+
+
+Test
+    curl -X POST http://localhost:8000/send_message -d '{"topic": "test", "message": "Hello"}' -H "Content-Type: application/json"

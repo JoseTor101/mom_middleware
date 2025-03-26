@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package mom;
+
+service MessageService {
+  rpc SendMessage (MessageRequest) returns (MessageResponse);
+  rpc ReceiveMessage (ReceiveRequest) returns (MessageResponse);
+}
+
+message MessageRequest {
+  string topic = 1;
+  string message = 2;
+}
+
+message ReceiveRequest {
+  string topic = 1;
+}
+
+message MessageResponse {
+  string status = 1;
+  string message = 2;
+}

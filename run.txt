@@ -13,4 +13,10 @@ Run REST API server
 Create topic
     curl -X POST "http://localhost:8000/topic/topic_name"
 
-See active topics
+See existing topics
+    redis-cli SMEMBERS topics
+
+See topics with pending messages
+    redis-cli
+    KEYS *
+

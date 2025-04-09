@@ -5,3 +5,6 @@ redis
 fastapi
 uvicorn
 uvloop
+passlib
+pyjwt
+multipart

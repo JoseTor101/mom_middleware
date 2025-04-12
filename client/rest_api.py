@@ -57,10 +57,10 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 @app.post("/node/register")
-def register_node(node_name: str = None, hostname: str = None, port: int = None):
-    """Registrar un nodo MOM en el clúster desde una máquina remota."""
+def register_node(node_name: str = Form(...), hostname: str = Form(...), port: int = Form(...)):
+    """Register a MOM node in the cluster from a remote machine."""
     master_node.add_instance(node_name=node_name, hostname=hostname, port=port)
-    return {"status": "Success", "message": f"Node {node_name or 'auto-generated'} registered successfully."}
+    return {"status": "Success", "message": f"Node {node_name} registered successfully."}
 
 @app.post("/node/remove")
 def remove_instance(node_name: str, current_user: str = Depends(get_current_user)):
@@ -71,8 +71,12 @@ def remove_instance(node_name: str, current_user: str = Depends(get_current_user
 @app.post("/topic/{topic_name}")
 def create_topic(topic_name: str, num_partitions: int = 3, current_user: str = Depends(get_current_user)):
     """Create a new topic (authenticated)."""
-    master_node.create_topic(topic_name, num_partitions)
-    return {"status": "Success", "message": f"Topic {topic_name} created with {num_partitions} partitions by {current_user}"}
+    try:
+        master_node.create_topic(topic_name, num_partitions)
+        return {"status": "Success", "message": f"Topic {topic_name} created with {num_partitions} partitions by {current_user}"}
+    except Exception as e:
+        print(f"Error creating topic: {e}")
+        raise HTTPException(status_code=500, detail=f"Error creating topic: {str(e)}")
 
 @app.post("/list/topics")
 def list_topics():

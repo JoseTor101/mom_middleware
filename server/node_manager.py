@@ -19,13 +19,13 @@ class MasterNode:
     def add_instance(self, node_name=None, hostname=None, port=None):
         """Register a MOM node in the cluster."""
         # If no hostname or port is provided, use default values
-        if not hostname:
+        if hostname is None:
             hostname = socket.gethostname()
-        if not port:
+        if port is None:
             port = self._find_free_port()
 
         # Generate a unique name for the node if not provided
-        if not node_name:
+        if node_name is None:
             node_name = f"node-{len(self.mom_instances) + 1}"
 
         instance_address = f"{hostname}:{port}"
@@ -71,3 +71,8 @@ class MasterNode:
         log_file = os.path.join(self.log_dir, "global_log.txt")
         with open(log_file, "a") as f:
             f.write(f"[{action}] Topic: {topic}, Message: {message}\n")
+
+    def create_topic(self, topic_name, num_partitions):
+        """Create a new topic with the given number of partitions."""
+        registry = GlobalTopicRegistry()
+        registry.create_topic(topic_name, num_partitions)

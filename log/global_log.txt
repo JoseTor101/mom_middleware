@@ -2,3 +2,4 @@
 [ENQUEUE] Topic: test, Message: Message 1
 [ENQUEUE] Topic: test, Message: Message 2
 [ENQUEUE] Topic: orders, Message: New order: #12345
+[ENQUEUE] Topic: test, Message: Hello, MOM!

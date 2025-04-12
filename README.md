@@ -1,71 +1,67 @@
-MOM Middleware
+1. Set Up Environment
 
-## Usage
+pip install -r requirements.txt
 
-Compile the grpc
+2. Generate Protocol Buffer Code
 
-1. Compile gRPC
-python3 -m grpc_tools.protoc -I=server --python_out=server/grpc_generated --grpc_python_out=server/grpc_generated server/mom.proto
+cd server
+python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. mom.proto
+cd ..
 
-2. Activate redis-server
+3. Start Redis Server
+
 redis-server --daemonize yes
 
-3. Check file sintax
-python3 -m server.mom_instance 
-python3 -m server.node_manager 
-python3 -m client.rest_api
+4. Generate Secret Key
 
-- Generate a secret key
+python key.py
 
-```python
-import secrets
+5. Start the gRPC(MOM) Server
 
-# Generate a secure random key
-secret_key = secrets.token_urlsafe(32)
-print(f"SECRET_KEY={secret_key}")
-```
+python server/start_grpc_server.py
 
-4. Start client
-python3 -m uvicorn client.rest_api:app --host 0.0.0.0 --port 8000
+6. Start the REST API
+In a different terminal:
 
+python -m uvicorn client.rest_api:app --host 0.0.0.0 --port 8000
 
-5. Signup New User
-curl -X POST "http://localhost:8000/signup" -d "username=testuser&password=1234"
-
-6. Login 
-curl -X POST "http://localhost:8000/login" -d "username=testuser&password=1234"
-
-This will retrieve an access token(use it)
-
-7. 
-
-curl -X POST "http://localhost:8000/instances/add" \
--H "Authorization: Bearer <Token>" \
--d "instance_address=localhost:50054"
-
+7. Register the gRPC Server with the REST API
 
 curl -X POST "http://localhost:8000/node/register" \
--H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDE3OTUxMX0.C0UiICz7by2Fk-TRq5jk9Ft3alDE5c1CEE8dDCNKbMI"
+     -d "node_name=grpc_server_instance&hostname=127.0.0.1&port=50051" \
+     -H "Content-Type: application/x-www-form-urlencoded"
 
-8. List instances
+8. Create a User Account
 
-curl -X POST "http://localhost:8000/list/instances" -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDE3Nzk0N30.5rTvt_179Vv4YfGgWnkciAm5jTS07K7QmjbZjx0AIbA"
+curl -X POST "http://localhost:8000/signup" \
+     -d "username=testuser&password=testpass" \
+     -H "Content-Type: application/x-www-form-urlencoded"
 
+9. Login to Get an Authentication Token
 
-9. Register a MOM Node
+curl -X POST "http://localhost:8000/login" \
+     -d "username=testuser&password=testpass" \
+     -H "Content-Type: application/x-www-form-urlencoded"
 
-curl -X POST "http://localhost:8000/node/register" \
--d '{"node_name": "node-1", "hostname": "127.0.0.1", "port": 50054}' \
--H "Content-Type: application/json"
+This will return an access token. Save it.
 
-10. Message
+10. Create a Topic
+
+curl -X POST "http://localhost:8000/topic/test" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDQ4Njc2OH0.UXweUXk6FU28phod5SGeQNPnwmU8Rz7pYWSQbWADjTI"
+
+11. Send a Message to the Topic
 
 curl -X POST "http://localhost:8000/message" \
--H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDE4MDA2NH0.4YGUiUEedO1EL7xD_UhSqr3tCQnlR6elhvV76bKT3lo" \
--d '{"topic_name": "orders", "message": "Order #1234"}' \
--H "Content-Type: application/json"
+     -d '{"topic_name": "test", "message": "Hello, MOM!"}' \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDQ4Njc2OH0.UXweUXk6FU28phod5SGeQNPnwmU8Rz7pYWSQbWADjTI"
 
-curl -X POST "http://localhost:8000/message" \
--H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDE4MDM1MX0.OkIgtwLLD4cvjUytWXi__nlC8f9QETTlHXOlywsgcVg" \
--H "Content-Type: application/json" \
--d '{"topic_name": "test", "message": "Order #1234"}'
+12. Verify
+List registered Nodes:
+
+curl -X POST "http://localhost:8000/list/instances"
+
+List available topics:
+
+curl -X POST "http://localhost:8000/list/topics"

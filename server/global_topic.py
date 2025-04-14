@@ -11,7 +11,7 @@ class GlobalTopicRegistry:
             self.redis.sadd("topics", topic_name)
             for partition in range(num_partitions):
                 partition_key = f"{topic_name}:partition{partition}"
-                self.redis.lpush(partition_key, "")  # Create an empty queue for each partition
+             #   self.redis.lpush(partition_key, "")  # Create an empty queue for each partition
             print(f"Topic '{topic_name}' created with {num_partitions} partitions.")
         else:
             print(f"Topic '{topic_name}' already exists.")
@@ -56,3 +56,24 @@ class GlobalTopicRegistry:
         else:
             print(f"Partition '{partition_key}' does not exist.")
             return None
+        
+    def get_partition_count(self, topic_name):
+        """Get the number of partitions for a topic."""
+        partitions = self.redis.keys(f"{topic_name}:partition*")
+        return len(partitions)
+
+    def get_partition_stats(self, topic_name):
+        """Get statistics about partitions for a topic."""
+        partition_stats = {}
+        partitions = self.redis.keys(f"{topic_name}:partition*")
+        for partition in partitions:
+            partition_id = partition.split('partition')[1]
+            message_count = self.redis.llen(partition)
+            partition_stats[partition_id] = message_count
+        return partition_stats
+
+    def get_message_from_partition(self, topic_name, partition_id):
+        """Get a message from a specific partition."""
+        partition_key = f"{topic_name}:partition{partition_id}"
+        message = self.redis.lpop(partition_key)
+        return message

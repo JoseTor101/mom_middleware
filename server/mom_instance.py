@@ -52,9 +52,23 @@ class MOMInstance(mom_pb2_grpc.MessageServiceServicer):
     def ReceiveMessage(self, request, context):
         """Handle gRPC ReceiveMessage requests."""
         print(f"[{self.instance_name}] Processing message for topic '{request.topic}'")
-        message = "Example message"  # Replace with actual dequeue logic
-        self.master_node.log_message(request.topic, message, action="DEQUEUE")
-        return mom_pb2.MessageResponse(status="Success", message=message or "No messages available")
+        
+        # Get a message from any partition (round-robin)
+        registry = GlobalTopicRegistry()
+        partition_count = registry.get_partition_count(request.topic)
+        message = None
+        
+        if partition_count > 0:
+            # Try each partition in round-robin fashion
+            for i in range(partition_count):
+                message = registry.dequeue_message(request.topic, i)
+                if message:
+                    break
+        
+        if message:
+            return mom_pb2.MessageResponse(status="Success", message=message)
+        else:
+            return mom_pb2.MessageResponse(status="Empty", message="No messages available")
         
     def replicate_partition(self, topic_name, partition, target_instance):
         """Replicate a partition to another MOM instance."""

@@ -11,7 +11,7 @@ class GlobalTopicRegistry:
             self.redis.sadd("topics", topic_name)
             for partition in range(num_partitions):
                 partition_key = f"{topic_name}:partition{partition}"
-                self.redis.lpush(partition_key, "")  # Create an empty queue for each partition
+             #   self.redis.lpush(partition_key, "")  # Create an empty queue for each partition
             print(f"Topic '{topic_name}' created with {num_partitions} partitions.")
         else:
             print(f"Topic '{topic_name}' already exists.")

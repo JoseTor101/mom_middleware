@@ -95,3 +95,42 @@ def send_message(request: MessageRequest, current_user: str = Depends(get_curren
     """Send a message to a topic (authenticated)."""
     response = mom_instance.send_message_to_topic(request.topic_name, request.message)
     return {"status": "Success", "message": f"Message sent to topic {request.topic_name} via {response.status}"}
+
+@app.post("/topic/{topic_name}/info")
+def get_topic_info(topic_name: str, current_user: str = Depends(get_current_user)):
+    """Get information about a topic and its partitions."""
+    registry = GlobalTopicRegistry()
+    partition_count = registry.get_partition_count(topic_name)
+    partition_stats = registry.get_partition_stats(topic_name)
+    
+    return {
+        "status": "Success",
+        "topic_name": topic_name,
+        "partition_count": partition_count,
+        "partition_stats": partition_stats
+    }
+
+@app.post("/message/{topic_name}/{partition_id}")
+def get_message_from_partition(
+    topic_name: str, 
+    partition_id: int, 
+    current_user: str = Depends(get_current_user)
+):
+    """Get a message from a specific partition."""
+    registry = GlobalTopicRegistry()
+    message = registry.get_message_from_partition(topic_name, partition_id)
+    
+    if message:
+        return {
+            "status": "Success",
+            "topic_name": topic_name,
+            "partition_id": partition_id,
+            "message": message
+        }
+    else:
+        return {
+            "status": "Empty",
+            "topic_name": topic_name,
+            "partition_id": partition_id,
+            "message": "No messages available in this partition"
+        }

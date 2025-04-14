@@ -4,3 +4,13 @@
 [ENQUEUE] Topic: orders, Message: New order: #12345
 [ENQUEUE] Topic: test, Message: Hello, MOM!
 [ENQUEUE] Topic: test, Message: Hello, MOM!
+[ENQUEUE] Topic: partitioned_topic, Message: Message 1
+[ENQUEUE] Topic: partitioned_topic, Message: Message 2
+[ENQUEUE] Topic: partitioned_topic, Message: Message 3
+[ENQUEUE] Topic: partitioned_topic, Message: Message 4
+[ENQUEUE] Topic: partitioned_topic, Message: Message 5
+[ENQUEUE] Topic: partitioned_topic, Message: Message 6
+[ENQUEUE] Topic: partitioned_topic, Message: Message 7
+[ENQUEUE] Topic: partitioned_topic, Message: Message 8
+[ENQUEUE] Topic: partitioned_topic, Message: Message 9
+[ENQUEUE] Topic: partitioned_topic, Message: Message 10

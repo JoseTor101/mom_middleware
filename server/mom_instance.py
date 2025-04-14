@@ -42,6 +42,10 @@ class MOMInstance(mom_pb2_grpc.MessageServiceServicer):
     def SendMessage(self, request, context):
         """Handle gRPC SendMessage requests."""
         print(f"[{self.instance_name}] Received message for topic '{request.topic}': {request.message}")
+
+        registry = GlobalTopicRegistry()
+        registry.enqueue_message(request.topic, request.message)
+
         self.master_node.log_message(request.topic, request.message, action="ENQUEUE")
         return mom_pb2.MessageResponse(status="Success", message="Message enqueued")
 

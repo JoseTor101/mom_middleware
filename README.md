@@ -48,14 +48,14 @@ This will return an access token. Save it.
 10. Create a Topic
 
 curl -X POST "http://localhost:8000/topic/test" \
-     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDQ4Njc2OH0.UXweUXk6FU28phod5SGeQNPnwmU8Rz7pYWSQbWADjTI"
+     -H "Authorization: Bearer YOUR_KEY_HERE"
 
 11. Send a Message to the Topic
 
 curl -X POST "http://localhost:8000/message" \
      -d '{"topic_name": "test", "message": "Hello, MOM!"}' \
      -H "Content-Type: application/json" \
-     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDQ4Njc2OH0.UXweUXk6FU28phod5SGeQNPnwmU8Rz7pYWSQbWADjTI"
+     -H "Authorization: Bearer YOUR_KEY_HERE"
 
 12. Verify
 List registered Nodes:

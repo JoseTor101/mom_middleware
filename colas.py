@@ -1,51 +1,73 @@
 import threading
+import json
+import os
 
-class MessageQueueService:
-    def __init__(self):
-        """Diccionario para almacenar las colas de mensajes."""
+class FaultTolerantMessageQueueService:
+    def __init__(self, backup_file='backup_queues.json'):
         self.queues = {}
         self.lock = threading.Lock()
+        self.backup_file = backup_file
+        self._load_backup()
+
+    def _load_backup(self):
+        """Carga el estado de las colas desde el archivo de respaldo."""
+        if os.path.exists(self.backup_file):
+            try:
+                with open(self.backup_file, 'r') as f:
+                    self.queues = json.load(f)
+                    print("Backup cargado correctamente.")
+            except Exception as e:
+                print(f"Error al cargar el backup: {e}")
+
+    def _save_backup(self):
+        """Guarda el estado actual de las colas en el archivo de respaldo."""
+        try:
+            with open(self.backup_file, 'w') as f:
+                json.dump(self.queues, f)
+        except Exception as e:
+            print(f"Error al guardar backup: {e}")
 
     def create_queue(self, queue_name: str):
-        """Crea una nueva cola si no existe."""
         with self.lock:
             if queue_name not in self.queues:
                 self.queues[queue_name] = []
+                self._save_backup()
                 print(f"Cola '{queue_name}' creada.")
             else:
                 print(f"La cola '{queue_name}' ya existe.")
 
     def delete_queue(self, queue_name: str):
-        """Elimina una cola si existe."""
         with self.lock:
             if queue_name in self.queues:
                 del self.queues[queue_name]
+                self._save_backup()
                 print(f"Cola '{queue_name}' eliminada.")
             else:
                 print(f"La cola '{queue_name}' no existe.")
 
     def send_message(self, queue_name: str, message: str):
-        """Envía un mensaje a la cola especificada."""
         with self.lock:
             if queue_name in self.queues:
                 self.queues[queue_name].append(message)
+                self._save_backup()
                 print(f"Mensaje enviado a '{queue_name}': {message}")
             else:
                 print(f"La cola '{queue_name}' no existe.")
 
     def receive_message(self, queue_name: str):
-        """Recibe un mensaje de la cola (FIFO)."""
         with self.lock:
             if queue_name in self.queues and self.queues[queue_name]:
                 message = self.queues[queue_name].pop(0)
+                self._save_backup()
                 print(f"Mensaje recibido de '{queue_name}': {message}")
                 return message
             else:
                 print(f"No hay mensajes en la cola '{queue_name}'.")
                 return None
 
+
 if __name__ == "__main__":
-    service = MessageQueueService()
+    service = FaultTolerantMessageQueueService()
 
     while True:
         print("\nOpciones:")

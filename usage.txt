@@ -5,7 +5,7 @@ Set Up Environment
 Generate Protocol Buffer Code
 
      cd server
-     python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. mom.proto
+     python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. mom.proto
      cd ..
 
 Start Redis Server

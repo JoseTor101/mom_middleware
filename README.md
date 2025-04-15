@@ -41,6 +41,16 @@ redis-server
 ```
 
 ## Usage
+
+Generate the gRPC code:
+```bash
+python3 -m grpc_tools.protoc -I. \
+--python_out=./grpc_generated \
+--grpc_python_out=./grpc_generated \
+mom.proto
+```
+
+
 Start the Master Node
 Run the master node to manage MOM instances:
 ```bash

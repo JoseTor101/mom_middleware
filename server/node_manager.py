@@ -12,7 +12,7 @@ class MasterNode:
     def __init__(self, mom_instances=None):
         self.state_manager = StateManager()
         # Cargar estado anterior desde el archivo
-        self.mom_instances = self.state_manager.load_state().get("mom_instances", {})
+        self.mom_instances = self.state_manager._load_state().get("mom_instances", {})
         self.current_instance = 0
         self.log_dir = "log"
         os.makedirs(self.log_dir, exist_ok=True)

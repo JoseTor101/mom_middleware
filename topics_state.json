@@ -1,16 +1,8 @@
 {
-    "mom_instances": {
-        "node-1": "127.0.1.1:46367",
-        "node-2": "127.0.1.1:57029",
-        "node-3": "127.0.1.1:50019"
-    },
     "chat": {
         "partitions": 3
     },
-    "test": {
-        "partitions": 3
-    },
-    "a": {
-        "partitions": 3
+    "mom_instances": {
+        "node-1": "127.0.1.1:35631"
     }
 }

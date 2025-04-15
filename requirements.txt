@@ -7,4 +7,6 @@ uvicorn
 uvloop
 passlib
 pyjwt
-multipart
+python-multipart
+requests
+dotenv

@@ -61,16 +61,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 @app.post("/node/register")
-async def register_node(request: Request):
-    """Registrar un nodo MOM en el nodo maestro."""
-    data = await request.json()  # Usa await para obtener los datos JSON
-    node_name = data.get("node_name")
-    hostname = data.get("hostname")
-    port = data.get("port")
-
-    if not node_name or not hostname or not port:
-        raise HTTPException(status_code=400, detail="Invalid node registration data")
-
+def register_node(node_name: str = Form(...), hostname: str = Form(...), port: int = Form(...)):
+    """Register a MOM node in the cluster from a remote machine."""
     master_node.add_instance(node_name=node_name, hostname=hostname, port=port)
     return {"status": "Success", "message": f"Node {node_name} registered successfully."}
 
@@ -83,8 +75,12 @@ def remove_instance(node_name: str, current_user: str = Depends(get_current_user
 @app.post("/topic/{topic_name}")
 def create_topic(topic_name: str, num_partitions: int = 3, current_user: str = Depends(get_current_user)):
     """Create a new topic (authenticated)."""
-    master_node.create_topic(topic_name, num_partitions)
-    return {"status": "Success", "message": f"Topic {topic_name} created with {num_partitions} partitions by {current_user}"}
+    try:
+        master_node.create_topic(topic_name, num_partitions)
+        return {"status": "Success", "message": f"Topic {topic_name} created with {num_partitions} partitions by {current_user}"}
+    except Exception as e:
+        print(f"Error creating topic: {e}")
+        raise HTTPException(status_code=500, detail=f"Error creating topic: {str(e)}")
 
 @app.post("/list/topics")
 def list_topics():
@@ -101,13 +97,45 @@ def list_instances():
 
 @app.post("/message")
 def send_message(request: MessageRequest, current_user: str = Depends(get_current_user)):
-    """Enviar un mensaje a un tópico (autenticado)."""
-    try:
-        # Obtener la siguiente instancia MOM en round-robin
-        instance_name, instance_address = master_node.get_next_instance()
-        with grpc.insecure_channel(instance_address) as channel:
-            stub = mom_pb2_grpc.MessageServiceStub(channel)
-            response = stub.SendMessage(mom_pb2.MessageRequest(topic=request.topic_name, message=request.message))
-        return {"status": "Success", "message": f"Message sent to topic {request.topic_name} via {instance_name}"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Send a message to a topic (authenticated)."""
+    response = mom_instance.send_message_to_topic(request.topic_name, request.message)
+    return {"status": "Success", "message": f"Message sent to topic {request.topic_name} via {response.status}"}
+
+@app.post("/topic/{topic_name}/info")
+def get_topic_info(topic_name: str, current_user: str = Depends(get_current_user)):
+    """Get information about a topic and its partitions."""
+    registry = GlobalTopicRegistry()
+    partition_count = registry.get_partition_count(topic_name)
+    partition_stats = registry.get_partition_stats(topic_name)
+    
+    return {
+        "status": "Success",
+        "topic_name": topic_name,
+        "partition_count": partition_count,
+        "partition_stats": partition_stats
+    }
+
+@app.post("/message/{topic_name}/{partition_id}")
+def get_message_from_partition(
+    topic_name: str, 
+    partition_id: int, 
+    current_user: str = Depends(get_current_user)
+):
+    """Get a message from a specific partition."""
+    registry = GlobalTopicRegistry()
+    message = registry.get_message_from_partition(topic_name, partition_id)
+    
+    if message:
+        return {
+            "status": "Success",
+            "topic_name": topic_name,
+            "partition_id": partition_id,
+            "message": message
+        }
+    else:
+        return {
+            "status": "Empty",
+            "topic_name": topic_name,
+            "partition_id": partition_id,
+            "message": "No messages available in this partition"
+        }

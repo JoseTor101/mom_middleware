@@ -1,69 +1,60 @@
-MOM Middleware
+# MOM Middleware
 
-## Usage
+MOM Middleware is a distributed **Message-Oriented Middleware** system designed to facilitate communication between clients and multiple MOM instances. It includes features such as topic-based messaging, queue management, and load balancing using a master node.
 
-Compile the grpc
+## Features
+- **Master Node**: Manages MOM instances and distributes load using round-robin.
+- **MOM Instances**: Handle topics and queues, supporting enqueue and dequeue operations.
+- **gRPC Communication**: MOM instances communicate using gRPC for high performance.
+- **REST API**: Clients interact with the system via a FastAPI-based REST API.
+- **Topic Management**: Create, list, and manage topics with multiple partitions.
+- **Message Handling**: Send and receive messages to/from topics.
+- **Dynamic Node Registration**: MOM instances can register dynamically with the master node.
 
-1. Compile gRPC
-python3 -m grpc_tools.protoc -I=server --python_out=server/grpc_generated --grpc_python_out=server/grpc_generated server/mom.proto
+## Project Structure
+- `client/rest_api.py`: REST API for client interaction.
+- `server/node_manager.py`: Master node implementation for managing MOM instances.
+- `server/mom_instance.py`: MOM instance implementation for handling topics and queues.
+- `server/grpc_generated/`: Auto-generated gRPC code for communication.
+- `test/`: Test scripts for validating functionality.
 
-2. Activate redis-server
-redis-server --daemonize yes
+## Requirements
+- Python 3.8+
+- Redis (for state management)
+- gRPC and gRPC tools
 
-3. Check file sintax
-python3 -m server.mom_instance 
-python3 -m server.node_manager 
-python3 -m client.rest_api
-
-- Generate a secret key
-
-```python
-import secrets
-
-# Generate a secure random key
-secret_key = secrets.token_urlsafe(32)
-print(f"SECRET_KEY={secret_key}")
+## Installation
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd mom_middleware
 ```
 
-4. Start client
+2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+3. Ensure Redis is running:
+```bash
+redis-server
+```
+
+## Usage
+Start the Master Node
+Run the master node to manage MOM instances:
+```bash
+python3 -m server.node_manager
+```
+
+Start a MOM Instance
+Start a MOM instance and register it with the master node:
+```bash
+python3 -m server.mom_instance
+```
+
+Start the REST API
+Run the REST API for client interaction:
+```bash
 python3 -m uvicorn client.rest_api:app --host 0.0.0.0 --port 8000
-
-
-5. Signup New User
-curl -X POST "http://localhost:8000/signup" -d "username=testuser&password=1234"
-
-6. Login 
-curl -X POST "http://localhost:8000/login" -d "username=testuser&password=1234"
-
-This will retrieve an access token(use it)
-
-7. 
-
-curl -X POST "http://localhost:8000/instances/add" \
--H "Authorization: Bearer <Token>" \
--d "instance_address=localhost:50054"
-
-
-curl -X POST "http://localhost:8000/node/register" \
--H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDI1OTQxNH0.KzDxrG2N5QoYeq_r6AiqFOkKatZtfAGdl1YtIOtyboE"
-
-8. List instances
-
-curl -X POST "http://localhost:8000/list/instances" -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDE3Nzk0N30.5rTvt_179Vv4YfGgWnkciAm5jTS07K7QmjbZjx0AIbA"
-
-
-9. Register a MOM Node
-
-curl -X POST "http://localhost:8000/node/register" \
--d '{"node_name": "node-1", "hostname": "127.0.0.1", "port": 50054}' \
--H "Content-Type: application/json"
-
-10. Message
-
-curl -X POST "http://localhost:8000/message" \
--H "Authorization: Bearer <Token>" \
--d '{"topic_name": "orders", "message": "Order #1234"}' \
--H "Content-Type: application/json"
-
-### Registar nueva instancia
-python3 -m server.mom_instance --master_node_url http://<master-node-host>:<port>
+```

@@ -55,16 +55,34 @@ class MOMInstance(mom_pb2_grpc.MessageServiceServicer):
 
     def SendMessage(self, request, context):
         print(f"[{self.instance_name}] Received message for topic '{request.topic}': {request.message}")
+
+        registry = GlobalTopicRegistry()
+        registry.enqueue_message(request.topic, request.message)
+
         self.master_node.log_message(request.topic, request.message, action="ENQUEUE")
         self.registry.enqueue_message(request.topic, request.message)
         return mom_pb2.MessageResponse(status="Success", message="Message enqueued")
 
     def ReceiveMessage(self, request, context):
         print(f"[{self.instance_name}] Processing message for topic '{request.topic}'")
-        message = self.registry.dequeue_message(request.topic)
-        self.master_node.log_message(request.topic, message, action="DEQUEUE")
-        return mom_pb2.MessageResponse(status="Success", message=message or "No messages available")
-
+        
+        # Get a message from any partition (round-robin)
+        registry = GlobalTopicRegistry()
+        partition_count = registry.get_partition_count(request.topic)
+        message = None
+        
+        if partition_count > 0:
+            # Try each partition in round-robin fashion
+            for i in range(partition_count):
+                message = registry.dequeue_message(request.topic, i)
+                if message:
+                    break
+        
+        if message:
+            return mom_pb2.MessageResponse(status="Success", message=message)
+        else:
+            return mom_pb2.MessageResponse(status="Empty", message="No messages available")
+        
     def replicate_partition(self, topic_name, partition, target_instance):
         partition_key = f"{topic_name}:partition{partition}"
         messages = self.registry.redis.lrange(partition_key, 0, -1)

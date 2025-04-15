@@ -1,4 +1,7 @@
 The Colas.py file implements a basic in-memory message queuing system as part of Message-Oriented Middleware (MOM). Its main purpose is to enable reliable point-to-point communication, where messages are stored in a queue until the consumer receives them.
+Uses a basic disk persistence strategy to ensure queues are not lost if the server shuts down unexpectedly or restarts.
+Automatically saves queue state (names and messages) to a backup_queues.json file.
+Uses locking with threading.Lock() to prevent multiple threads from corrupting data.
 
 ## Main Functionality:
 - Create new message queues.

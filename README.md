@@ -45,7 +45,7 @@ curl -X POST "http://localhost:8000/instances/add" \
 
 
 curl -X POST "http://localhost:8000/node/register" \
--H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDE3OTUxMX0.C0UiICz7by2Fk-TRq5jk9Ft3alDE5c1CEE8dDCNKbMI"
+-H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDI1OTQxNH0.KzDxrG2N5QoYeq_r6AiqFOkKatZtfAGdl1YtIOtyboE"
 
 8. List instances
 
@@ -61,11 +61,9 @@ curl -X POST "http://localhost:8000/node/register" \
 10. Message
 
 curl -X POST "http://localhost:8000/message" \
--H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDE4MDA2NH0.4YGUiUEedO1EL7xD_UhSqr3tCQnlR6elhvV76bKT3lo" \
+-H "Authorization: Bearer <Token>" \
 -d '{"topic_name": "orders", "message": "Order #1234"}' \
 -H "Content-Type: application/json"
 
-curl -X POST "http://localhost:8000/message" \
--H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImV4cCI6MTc0NDE4MDM1MX0.OkIgtwLLD4cvjUytWXi__nlC8f9QETTlHXOlywsgcVg" \
--H "Content-Type: application/json" \
--d '{"topic_name": "test", "message": "Order #1234"}'
+### Registar nueva instancia
+python3 -m server.mom_instance --master_node_url http://<master-node-host>:<port>

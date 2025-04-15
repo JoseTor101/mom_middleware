@@ -1,73 +1,47 @@
-from server.global_topic import GlobalTopicRegistry
-import grpc
-import sys
-import os
+import redis
+from collections import deque
 import socket
-# To solve the import error within the grpc_generated directory
-sys.path.append(os.path.join(os.path.dirname(__file__), "grpc_generated"))
-from .grpc_generated import mom_pb2
-from .grpc_generated import mom_pb2_grpc
 
 class MasterNode:
-    def __init__(self, mom_instances=None):
-        # Use a dictionary to map node names to their addresses
-        self.mom_instances = mom_instances or {}
-        self.current_instance = 0
-        self.log_dir = "log"  # Directory to store logs
-        os.makedirs(self.log_dir, exist_ok=True)  # Ensure the log directory exists
+    def __init__(self, redis_host='localhost', redis_port=6379):
+        self.redis = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
+        self.instances = {}  # node_name -> (hostname, port)
+        self.round_robin_queue = deque()  # Maintains node names for round-robin
 
-    def add_instance(self, node_name=None, hostname=None, port=None):
-        """Register a MOM node in the cluster."""
-        # If no hostname or port is provided, use default values
-        if not hostname:
-            hostname = socket.gethostname()
-        if not port:
-            port = self._find_free_port()
-
-        # Generate a unique name for the node if not provided
-        if not node_name:
-            node_name = f"node-{len(self.mom_instances) + 1}"
-
-        instance_address = f"{hostname}:{port}"
-
-        if node_name not in self.mom_instances:
-            self.mom_instances[node_name] = instance_address
-            print(f"Instance {node_name} ({instance_address}) added to the cluster.")
-        else:
-            print(f"Node {node_name} already exists in the cluster.")
+    def add_instance(self, node_name, hostname, port):
+        address = f"{hostname}:{port}"
+        self.instances[node_name] = address
+        if node_name not in self.round_robin_queue:
+            self.round_robin_queue.append(node_name)
 
     def remove_instance(self, node_name):
-        """Remove a MOM node from the cluster by its name."""
-        if node_name in self.mom_instances:
-            removed_address = self.mom_instances.pop(node_name)
-            print(f"Instance {node_name} ({removed_address}) removed from the cluster.")
-        else:
-            print(f"Node {node_name} does not exist in the cluster.")
+        if node_name in self.instances:
+            del self.instances[node_name]
+        if node_name in self.round_robin_queue:
+            self.round_robin_queue.remove(node_name)
 
     def list_instances(self):
-        """List all MOM nodes in the cluster."""
-        return self.mom_instances
+        return self.instances
 
     def get_next_instance(self):
-        """Get the next MOM node in the cluster (round-robin)."""
-        if not self.mom_instances:
-            raise Exception("No MOM instances available")
-        node_names = list(self.mom_instances.keys())
-        instance_name = node_names[self.current_instance]
-        self.current_instance = (self.current_instance + 1) % len(node_names)
-        hostname, port = self.mom_instances[instance_name].split(":")
-        if hostname == socket.gethostname():
-            hostname = "127.0.0.1"  # Use IPv4 loopback for local connections
-        return instance_name, f"{hostname}:{port}"
+        if not self.round_robin_queue:
+            raise Exception("No MOM instances registered")
+        node_name = self.round_robin_queue.popleft()
+        self.round_robin_queue.append(node_name)
+        return node_name, self.instances[node_name]
 
-    def _find_free_port(self):
-        """Find an available port on the current machine."""
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(('', 0))  # Bind to any available port
-            return s.getsockname()[1]  # Return the port number
+    def create_topic(self, topic_name, num_partitions):
+        for i in range(num_partitions):
+            partition_key = f"{topic_name}:partition{i}"
+            self.redis.delete(partition_key)  # Clean slate
+            self.redis.rpush(partition_key, *[])  # Init empty list
 
-    def log_message(self, topic, message, action):
-        """Log a message to a global log file."""
-        log_file = os.path.join(self.log_dir, "global_log.txt")
-        with open(log_file, "a") as f:
-            f.write(f"[{action}] Topic: {topic}, Message: {message}\n")
+    def log_message(self, topic, message, action="ENQUEUE"):
+        log_key = f"{topic}:logs"
+        self.redis.rpush(log_key, f"{action}: {message}")
+
+    def resolve_address(self, hostname):
+        try:
+            return socket.gethostbyname(hostname)
+        except socket.gaierror:
+            raise Exception(f"Unable to resolve hostname: {hostname}")

@@ -3,6 +3,7 @@ from server.global_topic import GlobalTopicRegistry
 from server.mom_instance import MOMInstance
 from fastapi import FastAPI, HTTPException, Depends, Form, Request
 from pydantic import BaseModel
+import os
 import jwt
 import json
 import grpc
@@ -18,10 +19,14 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 app = FastAPI()
 master_node = MasterNode()  # Initialize MasterNode without hardcoded instances
+
+MASTER_NODE_HOST = os.getenv("MASTER_NODE_HOST", "localhost")
+MASTER_NODE_PORT = os.getenv("MASTER_NODE_PORT", 50051)
+
 mom_instance = MOMInstance(
     instance_name="rest_api_instance",
-    master_node_url="http://localhost:8000",  # URL del nodo maestro
-    grpc_port=50051  # Puerto gRPC de esta instancia
+    master_node_url=f"http://{MASTER_NODE_HOST}:{MASTER_NODE_PORT}",
+    grpc_port=50051
 )
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -61,10 +66,10 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 @app.post("/node/register")
-def register_node(node_name: str = Form(...), hostname: str = Form(...), port: int = Form(...)):
-    """Register a MOM node in the cluster from a remote machine."""
-    master_node.add_instance(node_name=node_name, hostname=hostname, port=port)
-    return {"status": "Success", "message": f"Node {node_name} registered successfully."}
+def register_node(ip: str = Form(None)):
+    """Register a MOM node in the cluster from a remote machine (optionally provide IP)."""
+    master_node.add_instance(ip_address=ip)
+    return {"status": "Success", "message": "Node registered successfully."}
 
 @app.post("/node/remove")
 def remove_instance(node_name: str, current_user: str = Depends(get_current_user)):
@@ -139,3 +144,116 @@ def get_message_from_partition(
             "partition_id": partition_id,
             "message": "No messages available in this partition"
         }
+
+def main():
+    import sys
+
+    current_user = None
+    current_user_token = None
+
+    while True:
+        print("\n====== MOM CLI Menu ======")
+        print("1. Signup")
+        print("2. Login")
+        print("3. Register Node")
+        print("4. Remove Node")
+        print("5. Create Topic")
+        print("6. List Topics")
+        print("7. List Nodes")
+        print("8. Send Message")
+        print("9. Get Message from Partition")
+        print("0. Exit")
+
+        choice = input("Choose an option: ")
+
+        if choice == "1":
+            username = input("Choose username: ")
+            password = input("Choose password: ")
+            try:
+                response = signup(username=username, password=password)
+                print(f"✅ {response['message']}")
+            except Exception as e:
+                print(f"❌ Signup failed: {e}")
+
+        elif choice == "2":
+            username = input("Username: ")
+            password = input("Password: ")
+            try:
+                form_data = OAuth2PasswordRequestForm(
+                    username=username, password=password, scope="", grant_type="", client_id=None, client_secret=None
+                )
+                response = login(form_data)
+                current_user_token = response["access_token"]
+                current_user = get_current_user(current_user_token)
+                print(f"🔐 Logged in as {current_user}")
+            except Exception as e:
+                print(f"❌ Login failed: {e}")
+
+        elif choice == "3":
+            ip = input("Enter IP address (leave blank for local): ").strip()
+            ip = ip if ip else None
+            master_node.add_instance(ip_address=ip)
+            print(f"✅ Node registered successfully.")
+
+        elif choice == "4":
+            if not current_user_token:
+                print("🔒 Please login first.")
+                continue
+            name = input("Enter node name to remove: ")
+            master_node.remove_instance(name)
+            print(f"❌ Node '{name}' removed.")
+
+        elif choice == "5":
+            if not current_user_token:
+                print("🔒 Please login first.")
+                continue
+            topic = input("Enter topic name: ")
+            partitions = int(input("Enter number of partitions: "))
+            master_node.create_topic(topic, partitions)
+            print(f"✅ Topic '{topic}' created with {partitions} partitions.")
+
+        elif choice == "6":
+            registry = GlobalTopicRegistry()
+            topics = registry.list_topics()
+            print("📋 Topics:")
+            for t in topics:
+                print(f" - {t}")
+
+        elif choice == "7":
+            instances = master_node.list_instances()
+            print("🖥️  Registered Nodes:")
+            for i in instances:
+                print(f" - {i}")
+
+        elif choice == "8":
+            if not current_user_token:
+                print("🔒 Please login first.")
+                continue
+            topic = input("Enter topic name: ")
+            msg = input("Enter message: ")
+            response = mom_instance.send_message_to_topic(topic, msg)
+            print(f"📤 Message sent via: {response.status}")
+
+        elif choice == "9":
+            if not current_user_token:
+                print("🔒 Please login first.")
+                continue
+            topic = input("Enter topic name: ")
+            pid = int(input("Enter partition ID: "))
+            registry = GlobalTopicRegistry()
+            msg = registry.get_message_from_partition(topic, pid)
+            if msg:
+                print(f"📬 Message from {topic}[{pid}]: {msg}")
+            else:
+                print("📭 No messages in that partition.")
+
+        elif choice == "0":
+            print("👋 Exiting...")
+            sys.exit(0)
+
+        else:
+            print("❌ Invalid option. Try again.")
+
+
+if __name__ == "__main__":
+    main()

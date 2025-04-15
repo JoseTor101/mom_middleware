@@ -140,3 +140,79 @@ class MessageService(object):
             timeout,
             metadata,
             _registered_method=True)
+
+
+class MasterServiceStub(object):
+    """Servicio para el nodo maestro
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.GetNextInstance = channel.unary_unary(
+                '/mom.MasterService/GetNextInstance',
+                request_serializer=mom__pb2.Empty.SerializeToString,
+                response_deserializer=mom__pb2.InstanceResponse.FromString,
+                _registered_method=True)
+
+
+class MasterServiceServicer(object):
+    """Servicio para el nodo maestro
+    """
+
+    def GetNextInstance(self, request, context):
+        """Get the next MOM instance from the master node
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_MasterServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'GetNextInstance': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetNextInstance,
+                    request_deserializer=mom__pb2.Empty.FromString,
+                    response_serializer=mom__pb2.InstanceResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'mom.MasterService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('mom.MasterService', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class MasterService(object):
+    """Servicio para el nodo maestro
+    """
+
+    @staticmethod
+    def GetNextInstance(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mom.MasterService/GetNextInstance',
+            mom__pb2.Empty.SerializeToString,
+            mom__pb2.InstanceResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)

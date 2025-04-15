@@ -1,0 +1,23 @@
+### Usage
+
+redis-server --daemonize yes
+python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. mom.proto
+python server/mom_instance.py
+python server/round_robin.py
+python server/rest_api.py
+
+python3 -m uvicorn server.rest_api:app --host 0.0.0.0 --port 8000
+ sudo service redis-server start
+
+ 
+python3 -m server.mom_instance
+python3 -m server.round_robin
+python3 -m server.rest_api
+
+curl -X POST "http://localhost:8000/topic/<topic_name>"
+curl -X POST "http://localhost:8000/message" -d '{"topic_name": "topic_name", "message": "Hello, MOM!"}' -H "Content-Type: application/json"
+
+curl -X POST "http://localhost:8000/topic/test"
+curl -X POST "http://localhost:8000/message" \
+-d '{"topic_name": "test", "message": "Hello, MOM!"}' \
+-H "Content-Type: application/json"

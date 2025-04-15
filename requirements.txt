@@ -1,0 +1,12 @@
+grpcio
+grpcio-tools
+protobuf
+redis
+fastapi
+uvicorn
+uvloop
+passlib
+pyjwt
+python-multipart
+requests
+dotenv

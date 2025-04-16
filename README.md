@@ -44,6 +44,7 @@ redis-server
 
 Generate the gRPC code:
 ```bash
+cd server
 python3 -m grpc_tools.protoc -I. \
 --python_out=./grpc_generated \
 --grpc_python_out=./grpc_generated \

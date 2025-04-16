@@ -1,5 +1,0 @@
-{
-    "mom_instances": {
-        "grpc_server_instance": "localhost:50051"
-    }
-}

@@ -93,3 +93,10 @@ See topics and their messages
      redis-cli LRANGE "test:partition0" 0 -1
      redis-cli LRANGE "test:partition1" 0 -1
      redis-cli LRANGE "test:partition2" 0 -1
+
+Formatters
+
+flake8
+autopep8
+isort
+black

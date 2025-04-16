@@ -1,12 +1,16 @@
 import redis
+
 from .state_manager import StateManager
 
+
 class GlobalTopicRegistry:
-    def __init__(self, redis_host='localhost', redis_port=6379):
+    def __init__(self, redis_host="localhost", redis_port=6379):
         """Inicializar el registro global de tópicos y restaurar el estado si es necesario."""
-        self.redis = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
+        self.redis = redis.StrictRedis(
+            host=redis_host, port=redis_port, decode_responses=True
+        )
         self.state_manager = StateManager()
-        
+
         # Intentamos restaurar el estado desde el archivo JSON
         self.state_manager.restore_state(self.redis)
 
@@ -18,7 +22,8 @@ class GlobalTopicRegistry:
                 partition_key = f"{topic_name}:partition{partition}"
                 self.redis.delete(partition_key)  # Limpiar si ya existe
             self.state_manager.add_topic(topic_name, num_partitions)
-            print(f"Topic '{topic_name}' created with {num_partitions} partitions.")
+            print(
+                f"Topic '{topic_name}' created with {num_partitions} partitions.")
         else:
             print(f"Topic '{topic_name}' already exists.")
 
@@ -62,7 +67,7 @@ class GlobalTopicRegistry:
         else:
             print(f"Partition '{partition_key}' does not exist.")
             return None
-        
+
     def get_partition_count(self, topic_name):
         """Obtener el número de particiones de un tópico."""
         partitions = self.redis.keys(f"{topic_name}:partition*")
@@ -73,7 +78,7 @@ class GlobalTopicRegistry:
         partition_stats = {}
         partitions = self.redis.keys(f"{topic_name}:partition*")
         for partition in partitions:
-            partition_id = partition.split('partition')[1]
+            partition_id = partition.split("partition")[1]
             message_count = self.redis.llen(partition)
             partition_stats[partition_id] = message_count
         return partition_stats

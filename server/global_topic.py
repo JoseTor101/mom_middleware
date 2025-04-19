@@ -88,3 +88,20 @@ class GlobalTopicRegistry:
         partition_key = f"{topic_name}:partition{partition_id}"
         message = self.redis.lpop(partition_key)
         return message
+    
+    def get_all_messages_from_topic(self, topic_name):
+        """Obtener todos los mensajes de todas las particiones de un tópico sin eliminarlos."""
+        all_messages = []
+        partitions = self.redis.keys(f"{topic_name}:partition*")
+        
+        if not partitions:
+            print(f"Topic '{topic_name}' does not exist or has no partitions.")
+            return all_messages
+            
+        for partition in partitions:
+            # Get all messages from the partition without removing them
+            partition_messages = self.redis.lrange(partition, 0, -1)
+            if partition_messages:
+                all_messages.extend(partition_messages)
+                
+        return all_messages

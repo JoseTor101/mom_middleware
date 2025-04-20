@@ -107,47 +107,27 @@ class GlobalTopicRegistry:
         partition_key = f"{topic_name}:partition{partition_id}"
         message = self.redis.lpop(partition_key)
         return message
-    
+
+
     def get_all_messages_from_topic(self, topic_name):
         """Obtener todos los mensajes de todas las particiones de un tópico sin eliminarlos."""
         all_messages = []
-        
-        # Comprehensive debug of Redis state
-        print(f"DEBUG: All keys in Redis: {self.redis.keys('*')}")
-        print(f"DEBUG: All topics in Redis: {self.redis.smembers('topics')}")
         
         # Check if topic exists
         if not self.redis.sismember("topics", topic_name):
             print(f"Topic '{topic_name}' does not exist.")
             return all_messages
         
-        # Direct search for any keys related to this topic
-        all_related_keys = self.redis.keys(f"{topic_name}*")
-        print(f"DEBUG: All keys related to topic {topic_name}: {all_related_keys}")
+        # First, get all actual partition keys that match our pattern
+        actual_partition_keys = self.redis.keys(f"{topic_name}:partition[0-9]*")
+        print(f"DEBUG: Actual partition keys found: {actual_partition_keys}")
         
-        # Count partitions
-        partition_markers = self.redis.keys(f"{topic_name}:partition_exists:*")
-        partition_count = len(partition_markers)
-        print(f"DEBUG: Found {partition_count} partitions for topic {topic_name}")
-        
-        if partition_count == 0:
-            print(f"Topic '{topic_name}' has no partitions.")
+        if not actual_partition_keys:
+            print(f"Topic '{topic_name}' has no partition data.")
             return all_messages
         
-        # Scan all partition keys directly without filtering
-        partition_keys = [key for key in all_related_keys if "partition" in key and "exists" not in key]
-        print(f"DEBUG: Found partition keys: {partition_keys}")
-            
-        # Directly access each partition
-        for partition_id in range(partition_count):
-            partition_key = f"{topic_name}:partition{partition_id}"
-            print(f"DEBUG: Checking partition key: {partition_key}")
-            
-            # Check if this partition key exists
-            if not self.redis.exists(partition_key):
-                print(f"DEBUG: Partition key {partition_key} doesn't exist")
-                continue
-                
+        # Directly use the actual keys we found
+        for partition_key in actual_partition_keys:
             try:
                 # Get all messages from the partition without removing them
                 partition_messages = self.redis.lrange(partition_key, 0, -1)
@@ -158,17 +138,4 @@ class GlobalTopicRegistry:
             except Exception as e:
                 print(f"Error retrieving messages from partition '{partition_key}': {e}")
         
-        # If no messages found, try alternative approach
-        if not all_messages:
-            print("DEBUG: No messages found using standard approach, trying alternative...")
-            for partition_key in partition_keys:
-                try:
-                    partition_messages = self.redis.lrange(partition_key, 0, -1)
-                    print(f"DEBUG: Messages from alternative {partition_key}: {partition_messages}")
-                    
-                    if partition_messages:
-                        all_messages.extend(partition_messages)
-                except Exception as e:
-                    print(f"Error retrieving messages from '{partition_key}': {e}")
-                    
         return all_messages

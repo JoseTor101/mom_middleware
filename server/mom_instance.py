@@ -35,8 +35,17 @@ class MOMInstance(mom_pb2_grpc.MessageServiceServicer):
         if self.master_node_url:
             # If a direct URL was provided, use it
             if ":" in self.master_node_url:
+                # Extract hostname and port
+                hostname, port = self.master_node_url.split(":")
+                
+                # Check if connecting to own public IP
+                public_ip = get_public_ip()
+                if hostname == public_ip:
+                    print(f"[{self.instance_name}] Detected connection to own public IP, using local network instead")
+                    local_ip = get_local_ip()
+                    return f"{local_ip}:{port}"
+                
                 return self.master_node_url
-        
         try:
             # Try to get the public address first (for remote machines)
             public_address = self.redis.get("master_node_public")

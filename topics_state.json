@@ -1,0 +1,17 @@
+{
+    "mom_instances": {
+        "node-1": "127.0.1.1:46127"
+    },
+    "test-topic": {
+        "partitions": 3
+    },
+    "thirdtest": {
+        "partitions": 3
+    },
+    "fourthtest": {
+        "partitions": 4
+    },
+    "fifthtest": {
+        "partitions": 4
+    }
+}

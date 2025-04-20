@@ -103,16 +103,32 @@ class GlobalTopicRegistry:
     def get_all_messages_from_topic(self, topic_name):
         """Obtener todos los mensajes de todas las particiones de un tópico sin eliminarlos."""
         all_messages = []
-        partitions = self.redis.keys(f"{topic_name}:partition*")
+        
+        # Get all keys for this topic
+        all_keys = self.redis.keys(f"{topic_name}:*")
+        print(f"DEBUG: Found keys: {all_keys}")
+        
+        # Filter to include only the actual partition keys
+        # Looking specifically for the pattern topic:partition0, topic:partition1, etc.
+        partitions = [key for key in all_keys 
+                    if key.startswith(f"{topic_name}:partition") and 
+                    "exists" not in key]
+        
+        print(f"DEBUG: Filtered partitions: {partitions}")
         
         if not partitions:
             print(f"Topic '{topic_name}' does not exist or has no partitions.")
             return all_messages
             
         for partition in partitions:
-            # Get all messages from the partition without removing them
-            partition_messages = self.redis.lrange(partition, 0, -1)
-            if partition_messages:
-                all_messages.extend(partition_messages)
+            try:
+                # Get all messages from the partition without removing them
+                partition_messages = self.redis.lrange(partition, 0, -1)
+                print(f"DEBUG: Messages from {partition}: {partition_messages}")
+                
+                if partition_messages:
+                    all_messages.extend(partition_messages)
+            except Exception as e:
+                print(f"Error retrieving messages from partition '{partition}': {e}")
                 
         return all_messages

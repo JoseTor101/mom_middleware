@@ -1,17 +1,8 @@
 {
     "mom_instances": {
-        "node-1": "127.0.1.1:46127"
+        "node-1": "127.0.1.1:55933"
     },
-    "test-topic": {
+    "Test-topic": {
         "partitions": 3
-    },
-    "thirdtest": {
-        "partitions": 3
-    },
-    "fourthtest": {
-        "partitions": 4
-    },
-    "fifthtest": {
-        "partitions": 4
     }
 }

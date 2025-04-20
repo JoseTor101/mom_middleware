@@ -17,6 +17,8 @@ app = FastAPI()
 
 # Initialize the MasterNode at the start of the program
 master_node = MasterNode()
+
+global_registry = GlobalTopicRegistry()
 try:
     master_node.register_master()
     print("✅ Master Node initialized and registered successfully.")
@@ -123,8 +125,7 @@ def create_topic(
 
 @app.post("/list/topics")
 def list_topics():
-    registry = GlobalTopicRegistry()
-    topics = registry.list_topics()
+    topics = global_registry.list_topics()
     return {"status": "Success", "topics": topics}
 
 
@@ -161,9 +162,8 @@ def get_topic_info(
         topic_name: str,
         current_user: str = Depends(get_current_user)):
     """Get information about a topic and its partitions."""
-    registry = GlobalTopicRegistry()
-    partition_count = registry.get_partition_count(topic_name)
-    partition_stats = registry.get_partition_stats(topic_name)
+    partition_count = global_registry.get_partition_count(topic_name)
+    partition_stats = global_registry.get_partition_stats(topic_name)
 
     return {
         "status": "Success",
@@ -179,8 +179,7 @@ def get_message_from_partition(
         partition_id: int,
         current_user: str = Depends(get_current_user)):
     """Get a message from a specific partition."""
-    registry = GlobalTopicRegistry()
-    message = registry.get_message_from_partition(topic_name, partition_id)
+    message = global_registry.get_message_from_partition(topic_name, partition_id)
 
     if message:
         return {
@@ -201,8 +200,7 @@ def get_message_from_partition(
 @app.post("/topic/{topic_name}/subscribe")
 def subscribe_to_topic(topic_name: str, current_user: str = Depends(get_current_user)):
     """Get all messages from a topic (authenticated)."""
-    registry = GlobalTopicRegistry()
-    messages = registry.get_all_messages_from_topic(topic_name)
+    messages = global_registry.get_all_messages_from_topic(topic_name)
     
     return {
         "status": "Success",
@@ -287,8 +285,7 @@ def main():
             print(f"✅ Topic '{topic}' created with {partitions} partitions.")
         # List topics
         elif choice == "6":
-            registry = GlobalTopicRegistry()
-            topics = registry.list_topics()
+            topics = global_registry.list_topics()
             print("📋 Topics:")
             for t in topics:
                 print(f" - {t}")
@@ -317,8 +314,7 @@ def main():
                 continue
             topic = input("Enter topic name: ")
             pid = int(input("Enter partition ID: "))
-            registry = GlobalTopicRegistry()
-            msg = registry.get_message_from_partition(topic, pid)
+            msg = global_registry.get_message_from_partition(topic, pid)
             if msg:
                 print(f"📬 Message from {topic}[{pid}]: {msg}")
             else:
@@ -329,10 +325,9 @@ def main():
                 print("🔒 Please login first.")
                 continue
             topic = input("Enter topic name to subscribe to: ")
-            registry = GlobalTopicRegistry()
             
             print(f"\n📬 Subscription to topic '{topic}' active. Showing all messages:")
-            messages = registry.get_all_messages_from_topic(topic)
+            messages = global_registry.get_all_messages_from_topic(topic)
             
             if messages:
                 print(f"📚 {len(messages)} messages found in topic '{topic}':")
@@ -349,7 +344,7 @@ def main():
                         while True:
                             import time
                             time.sleep(2)  # Check every 2 seconds
-                            new_messages = registry.get_all_messages_from_topic(topic)
+                            new_messages = global_registry.get_all_messages_from_topic(topic)
                             if len(new_messages) > last_count:
                                 # Only display new messages
                                 for i, msg in enumerate(new_messages[last_count:], last_count+1):

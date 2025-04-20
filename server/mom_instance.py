@@ -129,7 +129,8 @@ class MOMInstance(mom_pb2_grpc.MessageServiceServicer):
             self.registry.create_topic(request.topic, 3)  # Create with default 3 partitions
         
         self.registry.enqueue_message(request.topic, request.message)
-        return mom_pb2.MessageResponse(status="Success", message="Message enqueued")
+        return mom_pb2.MessageResponse(
+            status="Success", message="Message enqueued")
 
     def ReceiveMessage(self, request, context):
         """Receive a message from the specified topic."""

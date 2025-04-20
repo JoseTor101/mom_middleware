@@ -88,7 +88,7 @@ class MasterNode(mom_pb2_grpc.MasterServiceServicer):
 
         # Register as a regular MOM instance
         hostname = ip_address or socket.gethostbyname(socket.gethostname())
-        port = self.find_free_port()
+        port = find_free_port()
         node_name = f"node-{len(self.mom_instances) + 1}"
 
         instance_address = f"{hostname}:{port}"

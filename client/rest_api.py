@@ -1,3 +1,8 @@
+import os
+import sys
+# Add the parent directory to the path so Python can find the 'server' module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import jwt
 from fastapi import Depends, FastAPI, Form, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -30,7 +35,8 @@ try:
         print("❌ Failed to register Master Node (already registered)")
 except Exception as e:
     print(f"❌ Failed to initialize Master Node: {e}")
-    
+
+global_registry = GlobalTopicRegistry()
     
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -132,8 +138,7 @@ def create_topic(
 
 @app.post("/list/topics")
 def list_topics():
-    registry = GlobalTopicRegistry()
-    topics = registry.list_topics()
+    topics = global_registry.list_topics()
     return {"status": "Success", "topics": topics}
 
 
@@ -170,9 +175,8 @@ def get_topic_info(
         topic_name: str,
         current_user: str = Depends(get_current_user)):
     """Get information about a topic and its partitions."""
-    registry = GlobalTopicRegistry()
-    partition_count = registry.get_partition_count(topic_name)
-    partition_stats = registry.get_partition_stats(topic_name)
+    partition_count = global_registry.get_partition_count(topic_name)
+    partition_stats = global_registry.get_partition_stats(topic_name)
 
     return {
         "status": "Success",
@@ -188,8 +192,7 @@ def get_message_from_partition(
         partition_id: int,
         current_user: str = Depends(get_current_user)):
     """Get a message from a specific partition."""
-    registry = GlobalTopicRegistry()
-    message = registry.get_message_from_partition(topic_name, partition_id)
+    message = global_registry.get_message_from_partition(topic_name, partition_id)
 
     if message:
         return {
@@ -222,7 +225,7 @@ def get_connection_info():
             public_address = master_node.get_master_address()
             
         # Generate connection command
-        connection_command = f"python3 -m server.mom_instance --master-url={public_address} --instance-name=remote-node-$(hostname)"
+        connection_command = f"python3 -m server.join_cluster --master-url={public_address} --instance-name=remote-node-$(hostname)"
         
         # Generate connection instructions
         instructions = f"""
@@ -254,6 +257,19 @@ def get_connection_info():
             status_code=500, 
             detail=f"Failed to generate connection information: {str(e)}"
         )
+    
+
+@app.post("/topic/{topic_name}/subscribe")
+def subscribe_to_topic(topic_name: str, current_user: str = Depends(get_current_user)):
+    """Get all messages from a topic (authenticated)."""
+    messages = global_registry.get_all_messages_from_topic(topic_name)
+    
+    return {
+        "status": "Success",
+        "topic_name": topic_name,
+        "message_count": len(messages),
+        "messages": messages,
+    }
 
 
 def main():
@@ -274,6 +290,7 @@ def main():
         print("8. Send Message")
         print("9. Get Message from Partition")
         print("10. Show Remote Connection Info")
+        print("11. Subscribe to Topic")
         print("0. Exit")
 
         choice = input("Choose an option: ")
@@ -331,8 +348,7 @@ def main():
             print(f"✅ Topic '{topic}' created with {partitions} partitions.")
         # List topics
         elif choice == "6":
-            registry = GlobalTopicRegistry()
-            topics = registry.list_topics()
+            topics = global_registry.list_topics()
             print("📋 Topics:")
             for t in topics:
                 print(f" - {t}")
@@ -361,8 +377,7 @@ def main():
                 continue
             topic = input("Enter topic name: ")
             pid = int(input("Enter partition ID: "))
-            registry = GlobalTopicRegistry()
-            msg = registry.get_message_from_partition(topic, pid)
+            msg = global_registry.get_message_from_partition(topic, pid)
             if msg:
                 print(f"📬 Message from {topic}[{pid}]: {msg}")
             else:
@@ -380,6 +395,41 @@ def main():
                 print("================================")
             except Exception as e:
                 print(f"❌ Failed to get connection info: {e}")
+        # Subscribe to topic
+        elif choice == "11":
+            if not current_user_token:
+                print("🔒 Please login first.")
+                continue
+            topic = input("Enter topic name to subscribe to: ")
+            
+            print(f"\n📬 Subscription to topic '{topic}' active. Showing all messages:")
+            messages = global_registry.get_all_messages_from_topic(topic)
+            
+            if messages:
+                print(f"📚 {len(messages)} messages found in topic '{topic}':")
+                for i, msg in enumerate(messages, 1):
+                    print(f"  {i}. {msg}")
+                
+                # Ask if user wants to keep listening for new messages
+                keep_listening = input("\nDo you want to keep listening for new messages? (y/n): ").lower()
+                if keep_listening == 'y':
+                    print(f"📡 Listening for new messages on topic '{topic}'... (Press Ctrl+C to stop)")
+                    try:
+                        # Keep checking for new messages
+                        last_count = len(messages)
+                        while True:
+                            import time
+                            time.sleep(2)  # Check every 2 seconds
+                            new_messages = global_registry.get_all_messages_from_topic(topic)
+                            if len(new_messages) > last_count:
+                                # Only display new messages
+                                for i, msg in enumerate(new_messages[last_count:], last_count+1):
+                                    print(f"  {i}. {msg}")
+                                last_count = len(new_messages)
+                    except KeyboardInterrupt:
+                        print("\n📴 Subscription stopped.")
+            else:
+                print(f"📭 No messages found in topic '{topic}'.")
 
         elif choice == "0":
             print("👋 Exiting...")

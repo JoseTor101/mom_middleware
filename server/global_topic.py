@@ -1,22 +1,34 @@
 import redis
+
 from .state_manager import StateManager
 
+
 class GlobalTopicRegistry:
-    def __init__(self, redis_host='localhost', redis_port=6379):
+    def __init__(self, redis_host="localhost", redis_port=6379):
         """Inicializar el registro global de tópicos y restaurar el estado si es necesario."""
-        self.redis = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
+        self.redis = redis.StrictRedis(
+            host=redis_host, port=redis_port, decode_responses=True
+        )
         self.state_manager = StateManager()
-        
+
         # Intentamos restaurar el estado desde el archivo JSON
         self.state_manager.restore_state(self.redis)
 
     def create_topic(self, topic_name, num_partitions=3):
-        """Crear un nuevo tópico con particiones."""
         if not self.redis.exists(topic_name):
             self.redis.sadd("topics", topic_name)
             for partition in range(num_partitions):
                 partition_key = f"{topic_name}:partition{partition}"
-                self.redis.delete(partition_key)  # Limpiar si ya existe
+                # Instead of creating and immediately emptying,
+                # use Redis SET to ensure the key exists
+                self.redis.set(f"{topic_name}:partition_exists:{partition}", "1")
+                # Initialize the partition key as an empty list
+                # We need to make sure this key exists even if empty
+                self.redis.delete(partition_key)
+                # We need to ensure the partition key exists even if it's empty
+                self.redis.rpush(partition_key, "__init__")
+                self.redis.ltrim(partition_key, 1, 0)  # Remove the initialization message
+                
             self.state_manager.add_topic(topic_name, num_partitions)
             print(f"Topic '{topic_name}' created with {num_partitions} partitions.")
         else:
@@ -40,13 +52,22 @@ class GlobalTopicRegistry:
 
     def enqueue_message(self, topic_name, message):
         """Agregar un mensaje a una partición del tópico."""
-        partitions = self.redis.keys(f"{topic_name}:partition*")
-        if partitions:
-            partition = partitions[hash(message) % len(partitions)]
-            self.redis.rpush(partition, message)
-            print(f"Message enqueued to {partition}: {message}")
-        else:
+        # First check if topic exists
+        if not self.redis.sismember("topics", topic_name):
             print(f"Topic '{topic_name}' does not exist.")
+            return
+            
+        # Count partitions based on marker keys
+        partition_markers = self.redis.keys(f"{topic_name}:partition_exists:*")
+        
+        if partition_markers:
+            # Get partition number
+            partition_num = hash(message) % len(partition_markers)
+            partition_key = f"{topic_name}:partition{partition_num}"
+            self.redis.rpush(partition_key, message)
+            print(f"Message enqueued to {partition_key}: {message}")
+        else:
+            print(f"Topic '{topic_name}' exists but has no partitions.")
 
     def dequeue_message(self, topic_name, partition):
         """Extraer un mensaje de una partición específica."""
@@ -65,15 +86,18 @@ class GlobalTopicRegistry:
         
     def get_partition_count(self, topic_name):
         """Obtener el número de particiones de un tópico."""
-        partitions = self.redis.keys(f"{topic_name}:partition*")
-        return len(partitions)
+        partition_markers = self.redis.keys(f"{topic_name}:partition_exists:*")
+        return len(partition_markers)
 
     def get_partition_stats(self, topic_name):
         """Obtener estadísticas sobre las particiones de un tópico."""
         partition_stats = {}
         partitions = self.redis.keys(f"{topic_name}:partition*")
         for partition in partitions:
-            partition_id = partition.split('partition')[1]
+            # Skip the existence markers
+            if "exists" in partition:
+                continue
+            partition_id = partition.split("partition")[1]
             message_count = self.redis.llen(partition)
             partition_stats[partition_id] = message_count
         return partition_stats
@@ -83,3 +107,35 @@ class GlobalTopicRegistry:
         partition_key = f"{topic_name}:partition{partition_id}"
         message = self.redis.lpop(partition_key)
         return message
+
+
+    def get_all_messages_from_topic(self, topic_name):
+        """Obtener todos los mensajes de todas las particiones de un tópico sin eliminarlos."""
+        all_messages = []
+        
+        # Check if topic exists
+        if not self.redis.sismember("topics", topic_name):
+            print(f"Topic '{topic_name}' does not exist.")
+            return all_messages
+        
+        # First, get all actual partition keys that match our pattern
+        actual_partition_keys = self.redis.keys(f"{topic_name}:partition[0-9]*")
+        print(f"DEBUG: Actual partition keys found: {actual_partition_keys}")
+        
+        if not actual_partition_keys:
+            print(f"Topic '{topic_name}' has no partition data.")
+            return all_messages
+        
+        # Directly use the actual keys we found
+        for partition_key in actual_partition_keys:
+            try:
+                # Get all messages from the partition without removing them
+                partition_messages = self.redis.lrange(partition_key, 0, -1)
+                print(f"DEBUG: Messages from {partition_key}: {partition_messages}")
+                
+                if partition_messages:
+                    all_messages.extend(partition_messages)
+            except Exception as e:
+                print(f"Error retrieving messages from partition '{partition_key}': {e}")
+        
+        return all_messages

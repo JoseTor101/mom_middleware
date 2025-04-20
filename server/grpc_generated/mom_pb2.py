@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tmom.proto\x12\x03mom\"0\n\x0eMessageRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\"2\n\x0fMessageResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t2\x87\x01\n\x0eMessageService\x12\x38\n\x0bSendMessage\x12\x13.mom.MessageRequest\x1a\x14.mom.MessageResponse\x12;\n\x0eReceiveMessage\x12\x13.mom.MessageRequest\x1a\x14.mom.MessageResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tmom.proto\x12\x03mom\"0\n\x0eMessageRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\"2\n\x0fMessageResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\"\x07\n\x05\x45mpty\"1\n\x10InstanceResponse\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t2\x87\x01\n\x0eMessageService\x12\x38\n\x0bSendMessage\x12\x13.mom.MessageRequest\x1a\x14.mom.MessageResponse\x12;\n\x0eReceiveMessage\x12\x13.mom.MessageRequest\x1a\x14.mom.MessageResponse2E\n\rMasterService\x12\x34\n\x0fGetNextInstance\x12\n.mom.Empty\x1a\x15.mom.InstanceResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,6 +35,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_MESSAGEREQUEST']._serialized_end=66
   _globals['_MESSAGERESPONSE']._serialized_start=68
   _globals['_MESSAGERESPONSE']._serialized_end=118
-  _globals['_MESSAGESERVICE']._serialized_start=121
-  _globals['_MESSAGESERVICE']._serialized_end=256
+  _globals['_EMPTY']._serialized_start=120
+  _globals['_EMPTY']._serialized_end=127
+  _globals['_INSTANCERESPONSE']._serialized_start=129
+  _globals['_INSTANCERESPONSE']._serialized_end=178
+  _globals['_MESSAGESERVICE']._serialized_start=181
+  _globals['_MESSAGESERVICE']._serialized_end=316
+  _globals['_MASTERSERVICE']._serialized_start=318
+  _globals['_MASTERSERVICE']._serialized_end=387
 # @@protoc_insertion_point(module_scope)

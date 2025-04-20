@@ -1,95 +1,71 @@
-Set Up Environment
+# MOM Middleware
 
-     pip install -r requirements.txt
+MOM Middleware is a distributed **Message-Oriented Middleware** system designed to facilitate communication between clients and multiple MOM instances. It includes features such as topic-based messaging, queue management, and load balancing using a master node.
 
-Generate Protocol Buffer Code
+## Features
+- **Master Node**: Manages MOM instances and distributes load using round-robin.
+- **MOM Instances**: Handle topics and queues, supporting enqueue and dequeue operations.
+- **gRPC Communication**: MOM instances communicate using gRPC for high performance.
+- **REST API**: Clients interact with the system via a FastAPI-based REST API.
+- **Topic Management**: Create, list, and manage topics with multiple partitions.
+- **Message Handling**: Send and receive messages to/from topics.
+- **Dynamic Node Registration**: MOM instances can register dynamically with the master node.
 
-     cd server
-     python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. mom.proto
-     cd ..
+## Project Structure
+- `client/rest_api.py`: REST API for client interaction.
+- `server/node_manager.py`: Master node implementation for managing MOM instances.
+- `server/mom_instance.py`: MOM instance implementation for handling topics and queues.
+- `server/grpc_generated/`: Auto-generated gRPC code for communication.
+- `test/`: Test scripts for validating functionality.
 
-Start Redis Server
+## Requirements
+- Python 3.8+
+- Redis (for state management)
+- gRPC and gRPC tools
 
-     redis-server --daemonize yes
+## Installation
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd mom_middleware
+```
 
-Generate Secret Key
+2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
 
-     python key.py
+3. Ensure Redis is running:
+```bash
+redis-server
+```
 
-Start the gRPC(MOM) Server
+## Usage
 
-     python server/start_grpc_server.py
+Generate the gRPC code:
+```bash
+cd server
+python3 -m grpc_tools.protoc -I. \
+--python_out=./grpc_generated \
+--grpc_python_out=./grpc_generated \
+mom.proto
+```
+
+
+Start the Master Node
+Run the master node to manage MOM instances:
+```bash
+python3 -m server.node_manager
+```
+
+Start a MOM Instance
+Start a MOM instance and register it with the master node:
+```bash
+python3 -m server.mom_instance
+```
 
 Start the REST API
-In a different terminal:
-
-     python -m uvicorn client.rest_api:app --host 0.0.0.0 --port 8000
-
-Register the gRPC Server with the REST API
-
-     curl -X POST "http://localhost:8000/node/register" \
-          -d "node_name=grpc_server_instance&hostname=127.0.0.1&port=50051" \
-          -H "Content-Type: application/x-www-form-urlencoded"
-
-Create a User Account
-
-     curl -X POST "http://localhost:8000/signup" \
-          -d "username=testuser&password=testpass" \
-          -H "Content-Type: application/x-www-form-urlencoded"
-
-Login to Get an Authentication Token
-
-     curl -X POST "http://localhost:8000/login" \
-          -d "username=testuser&password=testpass" \
-          -H "Content-Type: application/x-www-form-urlencoded"
-
-This will return an access token. Save it.
-
-Create a Topic
-
-     curl -X POST "http://localhost:8000/topic/test" \
-          -H "Authorization: Bearer YOUR_KEY_HERE"
-
-Custom number of partitions:
-
-     curl -X POST "http://localhost:8000/topic/test_multi_partition?num_partitions=5" \
-          -H "Authorization: Bearer YOUR_KEY_HERE"
-
-Send a Messages to the Topic
-
-     curl -X POST "http://localhost:8000/message" \
-          -d '{"topic_name": "test", "message": "Hello, MOM!"}' \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer YOUR_KEY_HERE"
-
-Send multiple messages to test partitioning
-
-     curl -X POST "http://localhost:8000/message" \
-          -d '{"topic_name": "test", "message": "Message 1"}' \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer YOUR_KEY_HERE"
-
-     curl -X POST "http://localhost:8000/message" \
-          -d '{"topic_name": "test", "message": "Message 2"}' \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer YOUR_KEY_HERE"
-
-     curl -X POST "http://localhost:8000/message" \
-          -d '{"topic_name": "test", "message": "Message 3"}' \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer YOUR_KEY_HERE"
-
-Verify
-List registered Nodes:
-
-     curl -X POST "http://localhost:8000/list/instances"
-
-List available topics:
-
-     curl -X POST "http://localhost:8000/list/topics"
-
-See topics and their messages
-
-     redis-cli LRANGE "test:partition0" 0 -1
-     redis-cli LRANGE "test:partition1" 0 -1
-     redis-cli LRANGE "test:partition2" 0 -1
+Run the REST API for client interaction:
+```bash
+python3 -m uvicorn client.rest_api:app --host 0.0.0.0 --port 8000
+```

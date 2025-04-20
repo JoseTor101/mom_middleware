@@ -1,0 +1,12 @@
+run gRPC
+
+python3 -m grpc_tools.protoc -I./server --python_out=./server/grpc_generated --grpc_python_out=./server/grpc_generated ./server/mom.proto
+
+join Node:
+python3 -m server.join_cluster --master-url=172.20.202.251:41037 --instance-name=mi-nodo-remoto
+
+# Local test 
+redis-cli master_node
+python3 -m server.join_cluster --master-url=172.20.202.251:54969 --instance-name=mi-nodo-remoto
+redis-cli FLUSHALL
+# Limpiar Redis

@@ -6,18 +6,32 @@ from pydantic import BaseModel
 from server.auth import (ALGORITHM, SECRET_KEY, authenticate_user,
                          create_access_token, fake_users_db, hash_password)
 from server.global_topic import GlobalTopicRegistry
-from server.node_manager import MasterNode
+from server.master_node import MasterNode
 
 app = FastAPI()
 
 # Initialize the MasterNode at the start of the program
 master_node = MasterNode()
 try:
-    master_node.register_master()
-    print("✅ Master Node initialized and registered successfully.")
+    success, ip, port = master_node.register_master()
+    if success:
+        print("✅ Master Node initialized and registered successfully.")
+        # Start the gRPC server in a separate thread
+        import threading
+        server_thread = threading.Thread(
+            target=master_node.start_grpc_server,
+            args=(ip, port),
+            daemon=True
+        )
+        server_thread.start()
+        print(f"✅ gRPC server started on {ip}:{port}")
+        print(f"🌐 External address: {master_node.public_address}")
+    else:
+        print("❌ Failed to register Master Node (already registered)")
 except Exception as e:
     print(f"❌ Failed to initialize Master Node: {e}")
-
+    
+    
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
@@ -193,6 +207,55 @@ def get_message_from_partition(
         }
 
 
+@app.get("/connect")
+def get_connection_info():
+    """Get connection information for remote machines to join the cluster."""
+    global master_node
+    if master_node is None:
+        raise HTTPException(status_code=500, detail="Master Node is not initialized.")
+    
+    # Get connection details from Redis
+    try:
+        public_address = master_node.redis.get("master_node_public")
+        if not public_address:
+            # If public address is not available, get the local one
+            public_address = master_node.get_master_address()
+            
+        # Generate connection command
+        connection_command = f"python3 -m server.mom_instance --master-url={public_address} --instance-name=remote-node-$(hostname)"
+        
+        # Generate connection instructions
+        instructions = f"""
+        To connect a new machine to this MOM middleware cluster:
+        
+        1. Clone the repository on the remote machine
+        2. Install requirements: `pip install -r requirements.txt`
+        3. Set Redis connection if using remote Redis:
+           ```
+           export REDIS_HOST={master_node.redis_host}
+           export REDIS_PORT={master_node.redis_port}
+           ```
+        4. Run the following command to connect:
+           ```
+           {connection_command}
+           ```
+        
+        The new node will automatically register with the master node at {public_address}
+        """
+        
+        return {
+            "status": "Success",
+            "master_node_address": public_address,
+            "connection_command": connection_command,
+            "instructions": instructions
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to generate connection information: {str(e)}"
+        )
+
+
 def main():
     import sys
 
@@ -210,6 +273,7 @@ def main():
         print("7. List Nodes")
         print("8. Send Message")
         print("9. Get Message from Partition")
+        print("10. Show Remote Connection Info")
         print("0. Exit")
 
         choice = input("Choose an option: ")
@@ -303,6 +367,19 @@ def main():
                 print(f"📬 Message from {topic}[{pid}]: {msg}")
             else:
                 print("📭 No messages in that partition.")
+        # Show connection information
+        elif choice == "10":
+            try:
+                info = get_connection_info()
+                print("\n===== REMOTE CONNECTION INFO =====")
+                print(f"Master Node Address: {info['master_node_address']}")
+                print("\nConnection Command:")
+                print(f"  {info['connection_command']}")
+                print("\nInstructions:")
+                print(info['instructions'])
+                print("================================")
+            except Exception as e:
+                print(f"❌ Failed to get connection info: {e}")
 
         elif choice == "0":
             print("👋 Exiting...")

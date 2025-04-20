@@ -5,17 +5,16 @@ from .state_manager import StateManager
 
 class GlobalTopicRegistry:
     def __init__(self, redis_host="localhost", redis_port=6379):
-        """Inicializar el registro global de tópicos y restaurar el estado si es necesario."""
+        """Initialize the global topic registry and restore state if needed. """
         self.redis = redis.StrictRedis(
             host=redis_host, port=redis_port, decode_responses=True
         )
         self.state_manager = StateManager()
-
-        # Intentamos restaurar el estado desde el archivo JSON
+        # Restore state from json file if it exists
         self.state_manager.restore_state(self.redis)
 
     def create_topic(self, topic_name, num_partitions=3):
-        """Crear un nuevo tópico con particiones."""
+        """Create a new topic with partitions."""
         if not self.redis.exists(topic_name):
             self.redis.sadd("topics", topic_name)
             for partition in range(num_partitions):
@@ -28,12 +27,12 @@ class GlobalTopicRegistry:
             print(f"Topic '{topic_name}' already exists.")
 
     def list_topics(self):
-        """Listar todos los tópicos."""
+        """List all topics."""
         topics = self.redis.smembers("topics")
         return list(topics)
 
     def delete_topic(self, topic_name):
-        """Eliminar un tópico y sus particiones."""
+        """Delete a topic and its partitions."""
         if self.redis.exists(topic_name):
             self.redis.srem("topics", topic_name)
             for key in self.redis.keys(f"{topic_name}:partition*"):
@@ -44,7 +43,7 @@ class GlobalTopicRegistry:
             print(f"Topic '{topic_name}' does not exist.")
 
     def enqueue_message(self, topic_name, message):
-        """Agregar un mensaje a una partición del tópico."""
+        """Enqueue a message to a topic's partition."""
         partitions = self.redis.keys(f"{topic_name}:partition*")
         if partitions:
             partition = partitions[hash(message) % len(partitions)]
@@ -54,7 +53,7 @@ class GlobalTopicRegistry:
             print(f"Topic '{topic_name}' does not exist.")
 
     def dequeue_message(self, topic_name, partition):
-        """Extraer un mensaje de una partición específica."""
+        """Dequeue a message from a topic's partition."""
         partition_key = f"{topic_name}:partition{partition}"
         if self.redis.exists(partition_key):
             message = self.redis.lpop(partition_key)
@@ -69,12 +68,12 @@ class GlobalTopicRegistry:
             return None
 
     def get_partition_count(self, topic_name):
-        """Obtener el número de particiones de un tópico."""
+        """ Obtain the number of partitions for a topic. """
         partitions = self.redis.keys(f"{topic_name}:partition*")
         return len(partitions)
 
     def get_partition_stats(self, topic_name):
-        """Obtener estadísticas sobre las particiones de un tópico."""
+        """Get statistics about the partitions of a topic. """
         partition_stats = {}
         partitions = self.redis.keys(f"{topic_name}:partition*")
         for partition in partitions:
@@ -84,7 +83,7 @@ class GlobalTopicRegistry:
         return partition_stats
 
     def get_message_from_partition(self, topic_name, partition_id):
-        """Obtener un mensaje de una partición específica."""
+        """Obtain a message from a specific partition."""
         partition_key = f"{topic_name}:partition{partition_id}"
         message = self.redis.lpop(partition_key)
         return message

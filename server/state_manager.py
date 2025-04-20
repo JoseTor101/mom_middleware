@@ -22,8 +22,13 @@ class StateManager:
 
     def save_state(self):
         """Save the current state to the JSON file."""
-        with open(self.state_file, "w") as f:
-            json.dump(self.state, f, indent=4)
+        try:
+            with open(self.state_file, "w") as f:
+                json.dump(self.state, f, indent=4)
+            print(f"✅ State saved to {self.state_file}")
+            print(f"   Current instances: {self.state.get('mom_instances', {}).keys()}")
+        except Exception as e:
+            print(f"❌ Error saving state: {e}")
 
     def add_topic(self, topic_name, num_partitions):
         """Add a new topic to the state and save it."""

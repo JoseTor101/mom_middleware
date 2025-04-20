@@ -8,12 +8,24 @@ service MessageService {
 
   // Receives a message from a topic
   rpc ReceiveMessage (MessageRequest) returns (MessageResponse);
+
+  // Creates a topic 
+  rpc CreateTopic(TopicRequest) returns (MessageResponse);
+}
+
+// Topic creation
+message TopicRequest {
+  string topic_name = 1;
+  int32 partitions = 2;
 }
 
 // Master Node service
 service MasterService {
   // Get the next MOM instance from the master node
   rpc GetNextInstance (Empty) returns (InstanceResponse);
+  
+  // Register a MOM instance with the master node
+  rpc RegisterMOMInstance (MOMInstanceRegistrationRequest) returns (MessageResponse);
 }
 
 // Request to send or receive a message
@@ -36,3 +48,11 @@ message InstanceResponse {
   string name = 1;
   string address = 2;
 }
+
+// Request to register a MOM instance with the master node
+message MOMInstanceRegistrationRequest {
+  string node_name = 1;
+  string hostname = 2;
+  int32 port = 3;
+}
+

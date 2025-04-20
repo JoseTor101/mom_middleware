@@ -13,7 +13,7 @@ MOM Middleware is a distributed **Message-Oriented Middleware** system designed 
 
 ## Project Structure
 - `client/rest_api.py`: REST API for client interaction.
-- `server/node_manager.py`: Master node implementation for managing MOM instances.
+- `server/master_node.py`: Master node implementation for managing MOM instances.
 - `server/mom_instance.py`: MOM instance implementation for handling topics and queues.
 - `server/grpc_generated/`: Auto-generated gRPC code for communication.
 - `test/`: Test scripts for validating functionality.

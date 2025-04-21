@@ -9,12 +9,13 @@ import redis
 
 from server.global_topic import GlobalTopicRegistry
 from server.state_manager import StateManager
+from server.mom_instance import MOMInstance
 from utils.utils import get_local_ip, get_public_ip, check_port_externally_accessible, find_free_port
 sys.path.append(os.path.join(os.path.dirname(__file__), "grpc_generated"))
 from .grpc_generated import mom_pb2, mom_pb2_grpc
 
 
-class MasterNode(mom_pb2_grpc.MasterServiceServicer):
+class MasterNode(mom_pb2_grpc.MasterServiceServicer, mom_pb2_grpc.MessageServiceServicer):
     def __init__(self):
         self.state_manager = StateManager()
         self.mom_instances = self.state_manager._load_state().get("mom_instances", {})
@@ -24,15 +25,19 @@ class MasterNode(mom_pb2_grpc.MasterServiceServicer):
 
         # Redis setup
         self.redis_host = os.getenv("REDIS_HOST", "localhost")
-        self.redis_port = os.getenv("REDIS_PORT", 6379)
+        self.redis_port = int(os.getenv("REDIS_PORT", 6379))
         self.redis = redis.Redis(
             host=self.redis_host, port=self.redis_port, decode_responses=True
         )
 
         self.public_address = None
+        self.registry = GlobalTopicRegistry(self.redis_host, self.redis_port)
+        self.grpc_port = None
+        self.instance_name = "master-node"
         
         # Set auto_remove to True if you want it to automatically clean up dead nodes
         self.start_health_check_thread(check_interval=60, auto_remove=True)
+        self.start_heartbeat_thread()
 
     def register_master(self):
         """Register the master node in Redis and ensure no other masters exist."""
@@ -44,6 +49,7 @@ class MasterNode(mom_pb2_grpc.MasterServiceServicer):
         # Get local IP for internal communication
         local_ip = get_local_ip()
         grpc_port = find_free_port()
+        self.grpc_port = grpc_port
         
         # Get public IP for external machine connections
         public_ip = get_public_ip()
@@ -57,9 +63,14 @@ class MasterNode(mom_pb2_grpc.MasterServiceServicer):
         self.redis.set("master_node_public", self.public_address)
         self.redis.set("master_node_port", grpc_port)
         
+        # Register ourselves as the first MOM instance
+        self.mom_instances[self.instance_name] = master_grpc_address
+        self._save_state()
+        
         print(f"[✅] Master node registered at {local_ip}:{grpc_port}")
         print(f"[✅] Public address: {self.public_address}")
         print(f"[🌐] External machines can connect using: {self.public_address}")
+        print(f"[✅] Master node is also registered as MOM instance: {self.instance_name}")
         
         return True, local_ip, grpc_port
 
@@ -75,6 +86,30 @@ class MasterNode(mom_pb2_grpc.MasterServiceServicer):
         self.redis.delete("master_node")
         print("[🧹] Master node unregistered.")
 
+    def update_heartbeat(self):
+        """Update the master node heartbeat in Redis."""
+        try:
+            # Use a Redis key with TTL for automatic expiration
+            self.redis.set("master_node_heartbeat", "alive", ex=10)  # 10 second TTL
+        except Exception as e:
+            print(f"[MasterNode] Error updating heartbeat: {e}")
+        
+    def start_heartbeat_thread(self):
+        """Start a background thread that periodically updates the master heartbeat."""
+        import threading
+        import time
+        
+        def heartbeat_worker():
+            while True:
+                try:
+                    self.update_heartbeat()
+                except Exception as e:
+                    print(f"[MasterNode] Error in heartbeat thread: {e}")
+                time.sleep(5)  # Update heartbeat every 5 seconds
+        
+        thread = threading.Thread(target=heartbeat_worker, daemon=True)
+        thread.start()
+        print(f"[MasterNode] Started master heartbeat thread")
 
     def add_instance(self, ip_address=None):
         """Add a new MOM instance or register as the master node."""
@@ -102,8 +137,6 @@ class MasterNode(mom_pb2_grpc.MasterServiceServicer):
         print(
             f"[✅] Instance {node_name} ({instance_address}) added to the cluster.")
         self._save_state()
-
-        from server.mom_instance import MOMInstance
 
         mom_instance = MOMInstance(node_name, self.get_master_address(), port)
         mom_instance.start_server()
@@ -218,6 +251,56 @@ class MasterNode(mom_pb2_grpc.MasterServiceServicer):
             print(f"Error creating topic: {e}")
             raise
 
+    def CreateTopic(self, request, context):
+        """Create a new topic with the specified number of partitions."""
+        try:
+            self.registry.create_topic(request.topic_name, request.partitions)
+            return mom_pb2.MessageResponse(
+                status="Success", 
+                message=f"Topic {request.topic_name} created with {request.partitions} partitions"
+            )
+        except Exception as e:
+            context.set_details(str(e))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            return mom_pb2.MessageResponse(
+                status="Error", 
+                message=f"Failed to create topic: {str(e)}"
+            )
+            
+    def SendMessage(self, request, context):
+        """Send a message to the specified topic."""
+        print(f"[{self.instance_name}] Received message for topic '{request.topic}': {request.message}")
+        
+        # Check if topic exists, if not create it with default partitions
+        topic_exists = self.registry.redis.sismember("topics", request.topic)
+        if not topic_exists:
+            print(f"[{self.instance_name}] Topic '{request.topic}' doesn't exist, creating with default partitions")
+            self.registry.create_topic(request.topic, 3)  # Create with default 3 partitions
+        
+        self.registry.enqueue_message(request.topic, request.message)
+        return mom_pb2.MessageResponse(
+            status="Success", message="Message enqueued")
+
+    def ReceiveMessage(self, request, context):
+        """Receive a message from the specified topic."""
+        print(
+            f"[{self.instance_name}] Processing message for topic '{request.topic}'")
+        partition_count = self.registry.get_partition_count(request.topic)
+        message = None
+
+        if partition_count > 0:
+            for i in range(partition_count):
+                message = self.registry.dequeue_message(request.topic, i)
+                if message:
+                    break
+
+        if message:
+            return mom_pb2.MessageResponse(status="Success", message=message)
+        else:
+            return mom_pb2.MessageResponse(
+                status="Empty", message="No messages available"
+            )
+
     def _save_state(self):
         self.state_manager.update_state("mom_instances", self.mom_instances)
 
@@ -226,6 +309,7 @@ class MasterNode(mom_pb2_grpc.MasterServiceServicer):
     
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         mom_pb2_grpc.add_MasterServiceServicer_to_server(self, server)
+        mom_pb2_grpc.add_MessageServiceServicer_to_server(self, server)  # Register as MOM instance too
         server.add_insecure_port(f"0.0.0.0:{port}")  # For IPv4
         server.add_insecure_port(f"[::]:{port}")      # For IPv6
         print(f"[MasterNode] gRPC server starting on port {port}...")
@@ -395,5 +479,4 @@ class MasterNode(mom_pb2_grpc.MasterServiceServicer):
         thread = threading.Thread(target=health_check_worker, daemon=True)
         thread.start()
         print(f"[MasterNode] Started instance health check thread (interval: {check_interval}s)")
-    
-    
+

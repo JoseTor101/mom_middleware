@@ -100,3 +100,39 @@ flake8
 autopep8
 isort
 black
+
+
+----------------------
+
+# Terminal 1: Start Redis (if not already running)
+redis-server
+
+# Terminal 2: Start master node
+python -m mom_middleware master  --redis-host=localhost
+
+# Terminal 3: Start REST API
+python -m mom_middleware api 
+op 2:
+python -m mom_middleware api --redis-host=<machine1-ip>
+
+# Terminal 4: Join a node
+python -m mom_middleware join --master-url=<master-url> --instance-name=node-1
+
+
+
+
+-----------------------
+     RUN
+
+# Run the module directly
+python -m server.master_node_server
+python -m server.join_cluster --master-url=<master-url> --instance-name=<node-name>
+python -m uvicorn client.rest_api:app --host 0.0.0.0 --port 8000
+
+--------------------------
+
+     TESTING
+chmod +x test/test_rest_api.sh
+./test/test_rest_api.sh
+
+python3 test/test_topic_isolation.py

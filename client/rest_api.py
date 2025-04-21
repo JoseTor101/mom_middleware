@@ -1,5 +1,7 @@
 import os
 import sys
+import time
+import grpc
 # Add the parent directory to the path so Python can find the 'server' module
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -12,32 +14,64 @@ from server.auth import (ALGORITHM, SECRET_KEY, authenticate_user,
                          create_access_token, fake_users_db, hash_password)
 from server.global_topic import GlobalTopicRegistry
 from server.master_node import MasterNode
+from server.grpc_generated import mom_pb2, mom_pb2_grpc
 
 app = FastAPI()
 
-# Initialize the MasterNode at the start of the program
-master_node = MasterNode()
-try:
-    success, ip, port = master_node.register_master()
-    if success:
-        print("✅ Master Node initialized and registered successfully.")
-        # Start the gRPC server in a separate thread
-        import threading
-        server_thread = threading.Thread(
-            target=master_node.start_grpc_server,
-            args=(ip, port),
-            daemon=True
-        )
-        server_thread.start()
-        print(f"✅ gRPC server started on {ip}:{port}")
-        print(f"🌐 External address: {master_node.public_address}")
-    else:
-        print("❌ Failed to register Master Node (already registered)")
-except Exception as e:
-    print(f"❌ Failed to initialize Master Node: {e}")
+# Initialize connection to the MasterNode
+master_node = None
+
+def initialize_master_node():
+    """Initialize connection to the master node."""
+    global master_node
+    try:
+        # Create the MasterNode instance without registering
+        master_node = MasterNode()
+        
+        # Try to get master node info from Redis
+        try:
+            # Get the master node address from Redis
+            master_address = master_node.redis.get("master_node")
+            if not master_address:
+                print("❌ No master node found in Redis. Please start a master node first.")
+                print("   Run: python -m server.master_node_server")
+                return False
+                
+            # Get the public address for external connections
+            public_address = master_node.redis.get("master_node_public")
+            if public_address:
+                master_node.public_address = public_address
+                
+            print(f"✅ Connected to master node at {master_address}")
+            print(f"🌐 External address: {public_address or master_address}")
+            
+            # Check if the master node is actually responsive
+            with grpc.insecure_channel(master_address) as channel:
+                stub = mom_pb2_grpc.MasterServiceStub(channel)
+                try:
+                    future = grpc.channel_ready_future(channel)
+                    future.result(timeout=5)
+                    print("✅ Master node is responsive")
+                    return True
+                except Exception as e:
+                    print(f"❌ Master node is not responsive: {e}")
+                    return False
+                    
+        except Exception as e:
+            print(f"❌ Failed to connect to master node: {e}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Failed to initialize master node connection: {e}")
+        return False
+
+# Initialize the master node connection
+if not initialize_master_node():
+    print("⚠️ REST API started without a master node connection")
+    print("⚠️ Some functionality may be limited")
+    print("⚠️ Start a master node with: python -m server.master_node_server")
 
 global_registry = GlobalTopicRegistry()
-    
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
@@ -425,7 +459,7 @@ def main():
                                 # Only display new messages
                                 for i, msg in enumerate(new_messages[last_count:], last_count+1):
                                     print(f"  {i}. {msg}")
-                                last_count = len(new_messages)
+                                last_count = len(new_messages)  # Fixed: store the new length
                     except KeyboardInterrupt:
                         print("\n📴 Subscription stopped.")
             else:

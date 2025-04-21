@@ -24,17 +24,27 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tmom.proto\x12\x03mom\"0\n\x0eMessageRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\"2\n\x0fMessageResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t2\x87\x01\n\x0eMessageService\x12\x38\n\x0bSendMessage\x12\x13.mom.MessageRequest\x1a\x14.mom.MessageResponse\x12;\n\x0eReceiveMessage\x12\x13.mom.MessageRequest\x1a\x14.mom.MessageResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tmom.proto\x12\x03mom\"6\n\x0cTopicRequest\x12\x12\n\ntopic_name\x18\x01 \x01(\t\x12\x12\n\npartitions\x18\x02 \x01(\x05\"0\n\x0eMessageRequest\x12\r\n\x05topic\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\"2\n\x0fMessageResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\"\x07\n\x05\x45mpty\"1\n\x10InstanceResponse\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\"S\n\x1eMOMInstanceRegistrationRequest\x12\x11\n\tnode_name\x18\x01 \x01(\t\x12\x10\n\x08hostname\x18\x02 \x01(\t\x12\x0c\n\x04port\x18\x03 \x01(\x05\x32\xbf\x01\n\x0eMessageService\x12\x38\n\x0bSendMessage\x12\x13.mom.MessageRequest\x1a\x14.mom.MessageResponse\x12;\n\x0eReceiveMessage\x12\x13.mom.MessageRequest\x1a\x14.mom.MessageResponse\x12\x36\n\x0b\x43reateTopic\x12\x11.mom.TopicRequest\x1a\x14.mom.MessageResponse2\x97\x01\n\rMasterService\x12\x34\n\x0fGetNextInstance\x12\n.mom.Empty\x1a\x15.mom.InstanceResponse\x12P\n\x13RegisterMOMInstance\x12#.mom.MOMInstanceRegistrationRequest\x1a\x14.mom.MessageResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'mom_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_MESSAGEREQUEST']._serialized_start=18
-  _globals['_MESSAGEREQUEST']._serialized_end=66
-  _globals['_MESSAGERESPONSE']._serialized_start=68
-  _globals['_MESSAGERESPONSE']._serialized_end=118
-  _globals['_MESSAGESERVICE']._serialized_start=121
-  _globals['_MESSAGESERVICE']._serialized_end=256
+  _globals['_TOPICREQUEST']._serialized_start=18
+  _globals['_TOPICREQUEST']._serialized_end=72
+  _globals['_MESSAGEREQUEST']._serialized_start=74
+  _globals['_MESSAGEREQUEST']._serialized_end=122
+  _globals['_MESSAGERESPONSE']._serialized_start=124
+  _globals['_MESSAGERESPONSE']._serialized_end=174
+  _globals['_EMPTY']._serialized_start=176
+  _globals['_EMPTY']._serialized_end=183
+  _globals['_INSTANCERESPONSE']._serialized_start=185
+  _globals['_INSTANCERESPONSE']._serialized_end=234
+  _globals['_MOMINSTANCEREGISTRATIONREQUEST']._serialized_start=236
+  _globals['_MOMINSTANCEREGISTRATIONREQUEST']._serialized_end=319
+  _globals['_MESSAGESERVICE']._serialized_start=322
+  _globals['_MESSAGESERVICE']._serialized_end=513
+  _globals['_MASTERSERVICE']._serialized_start=516
+  _globals['_MASTERSERVICE']._serialized_end=667
 # @@protoc_insertion_point(module_scope)

@@ -1,3 +1,5 @@
 venv/
 .env
 project_env/
+usage.txt
+distributed

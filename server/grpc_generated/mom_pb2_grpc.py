@@ -44,6 +44,11 @@ class MessageServiceStub(object):
                 request_serializer=mom__pb2.MessageRequest.SerializeToString,
                 response_deserializer=mom__pb2.MessageResponse.FromString,
                 _registered_method=True)
+        self.CreateTopic = channel.unary_unary(
+                '/mom.MessageService/CreateTopic',
+                request_serializer=mom__pb2.TopicRequest.SerializeToString,
+                response_deserializer=mom__pb2.MessageResponse.FromString,
+                _registered_method=True)
 
 
 class MessageServiceServicer(object):
@@ -63,6 +68,13 @@ class MessageServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CreateTopic(self, request, context):
+        """Creates a topic 
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MessageServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -74,6 +86,11 @@ def add_MessageServiceServicer_to_server(servicer, server):
             'ReceiveMessage': grpc.unary_unary_rpc_method_handler(
                     servicer.ReceiveMessage,
                     request_deserializer=mom__pb2.MessageRequest.FromString,
+                    response_serializer=mom__pb2.MessageResponse.SerializeToString,
+            ),
+            'CreateTopic': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateTopic,
+                    request_deserializer=mom__pb2.TopicRequest.FromString,
                     response_serializer=mom__pb2.MessageResponse.SerializeToString,
             ),
     }
@@ -130,6 +147,153 @@ class MessageService(object):
             target,
             '/mom.MessageService/ReceiveMessage',
             mom__pb2.MessageRequest.SerializeToString,
+            mom__pb2.MessageResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CreateTopic(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mom.MessageService/CreateTopic',
+            mom__pb2.TopicRequest.SerializeToString,
+            mom__pb2.MessageResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class MasterServiceStub(object):
+    """Master Node service
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.GetNextInstance = channel.unary_unary(
+                '/mom.MasterService/GetNextInstance',
+                request_serializer=mom__pb2.Empty.SerializeToString,
+                response_deserializer=mom__pb2.InstanceResponse.FromString,
+                _registered_method=True)
+        self.RegisterMOMInstance = channel.unary_unary(
+                '/mom.MasterService/RegisterMOMInstance',
+                request_serializer=mom__pb2.MOMInstanceRegistrationRequest.SerializeToString,
+                response_deserializer=mom__pb2.MessageResponse.FromString,
+                _registered_method=True)
+
+
+class MasterServiceServicer(object):
+    """Master Node service
+    """
+
+    def GetNextInstance(self, request, context):
+        """Get the next MOM instance from the master node
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RegisterMOMInstance(self, request, context):
+        """Register a MOM instance with the master node
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_MasterServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'GetNextInstance': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetNextInstance,
+                    request_deserializer=mom__pb2.Empty.FromString,
+                    response_serializer=mom__pb2.InstanceResponse.SerializeToString,
+            ),
+            'RegisterMOMInstance': grpc.unary_unary_rpc_method_handler(
+                    servicer.RegisterMOMInstance,
+                    request_deserializer=mom__pb2.MOMInstanceRegistrationRequest.FromString,
+                    response_serializer=mom__pb2.MessageResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'mom.MasterService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('mom.MasterService', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class MasterService(object):
+    """Master Node service
+    """
+
+    @staticmethod
+    def GetNextInstance(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mom.MasterService/GetNextInstance',
+            mom__pb2.Empty.SerializeToString,
+            mom__pb2.InstanceResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RegisterMOMInstance(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mom.MasterService/RegisterMOMInstance',
+            mom__pb2.MOMInstanceRegistrationRequest.SerializeToString,
             mom__pb2.MessageResponse.FromString,
             options,
             channel_credentials,

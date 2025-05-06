@@ -2,6 +2,9 @@
 
 MOM Middleware is a distributed **Message-Oriented Middleware (MOM)** system primarily developed in Python, designed to facilitate asynchronous communication between clients and multiple MOM instances. It includes features such as topic-based messaging, queue management, and load balancing through a master node, aiming to provide a scalable and fault-tolerant solution for service-to-service communication.
 
+## Development Methodology
+The project was developed using the agile Scrum methodology, dividing the work into weekly sprints. Each sprint included planning, development, integration, and review. Tasks were managed through GitHub Issues, aligned with specific user stories.
+
 ## Team Members
 
 | Name | Institutional Email | Role |

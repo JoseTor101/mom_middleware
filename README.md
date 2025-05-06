@@ -1,6 +1,6 @@
 # MOM Middleware
 
-MOM Middleware is a distributed **Message-Oriented Middleware** system designed to facilitate communication between clients and multiple MOM instances. It includes features such as topic-based messaging, queue management, and load balancing using a master node.
+MOM Middleware is a distributed **Message-Oriented Middleware (MOM)** system primarily developed in Python, designed to facilitate asynchronous communication between clients and multiple MOM instances. It includes features such as topic-based messaging, queue management, and load balancing through a master node, aiming to provide a scalable and fault-tolerant solution for service-to-service communication.
 
 ## Team Members
 

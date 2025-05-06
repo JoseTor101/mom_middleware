@@ -10,6 +10,16 @@ MOM Middleware is a distributed **Message-Oriented Middleware (MOM)** system pri
 | Katherin Nathalia Allin Murillo | knallinm@eafit.edu.co | Developer |
 | Juan Andrés Montoya Galeano | jamontoya2@eafit.edu.co | Developer |
 
+## Glossary
+
+- **MOM (Message-Oriented Middleware):** Software that enables communication between distributed applications through message exchange.
+- **Topic:** A communication channel in the publisher-subscriber pattern.
+- **Queue:** A data structure that stores messages in order for processing.
+- **gRPC:** A remote communication framework that uses HTTP/2 and Protocol Buffers.
+- **Partitioning:** The division of data or workloads to improve scalability.
+- **Replication:** The copying of data across multiple nodes to ensure availability and fault tolerance.
+
+
 ## Features
 
 - **Master Node**: Manages MOM instances and distributes load using round-robin.

@@ -60,6 +60,54 @@ mom_middleware/
 ├── __main__.py              # Package entry point
 └── topics_state.json        # State persistence file
 ```
+Claro, aquí tienes la traducción al inglés:
+
+---
+
+## Architecture of the MOM Middleware Project
+---
+### 1. Clients
+**Function:** Applications that send and receive messages through the middleware.
+**Interaction:** Communicate with the middleware using defined protocols ( HTTP or gRPC).
+
+---
+
+### 2. REST API (Flask)
+**Function:** Entry point for clients using HTTP.
+**Interaction:** Receives client requests and translates them into operations the middleware can process.
+
+---
+
+### 3. gRPC Server
+**Function:** Manages efficient and structured communication between internal system components.
+**Interaction:** Facilitates communication between the REST API and the middleware core, as well as between different middleware instances.
+
+---
+
+### 4. Middleware Core (MOM Core)
+**Function:** Processes messaging operations such as queue and topic management, message routing, and persistence.
+**Interaction:** Receives requests from the REST API or gRPC server and executes the corresponding operations.
+
+---
+
+### 5. Persistent Storage
+**Function:** Stores messages and queue information to ensure durability and fault tolerance.
+**Interaction:** The middleware core interacts with the storage to save and retrieve data as needed.
+
+---
+
+## Communication Flow
+
+**Message Sending:**
+* A client sends an HTTP request to the REST API to publish a message to a specific topic.
+* The REST API processes the request and forwards it to the middleware core via the gRPC server.
+* The middleware core queues the message in the corresponding topic and stores it persistently.
+  
+**Message Receiving:**
+* A client subscribed to a specific topic makes a request to receive messages.
+* The middleware core retrieves the message from storage and delivers it to the client through the REST API.
+
+---
 
 ## Technologies
 
